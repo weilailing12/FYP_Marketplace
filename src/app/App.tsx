@@ -1,0 +1,46 @@
+import { useState } from "react";
+import { LoginPage } from "./components/LoginPage";
+import { MarketplaceFeed } from "./components/MarketplaceFeed";
+import { ProductDetails } from "./components/ProductDetails";
+import { CreateListing } from "./components/CreateListing";
+import { ChatMeetup } from "./components/ChatMeetup";
+import { Dashboard } from "./components/Dashboard";
+
+type Page = "login" | "marketplace" | "product" | "create" | "chat" | "dashboard";
+
+export default function App() {
+  const [currentPage, setCurrentPage] = useState<Page>("login");
+  const [selectedProductId, setSelectedProductId] = useState<string | undefined>();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const handleNavigate = (page: string, productId?: string) => {
+    setCurrentPage(page as Page);
+    if (productId) {
+      setSelectedProductId(productId);
+    }
+  };
+
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    setCurrentPage("marketplace");
+  };
+
+  if (!isLoggedIn && currentPage === "login") {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
+  switch (currentPage) {
+    case "marketplace":
+      return <MarketplaceFeed onNavigate={handleNavigate} />;
+    case "product":
+      return <ProductDetails onNavigate={handleNavigate} productId={selectedProductId} />;
+    case "create":
+      return <CreateListing onNavigate={handleNavigate} />;
+    case "chat":
+      return <ChatMeetup onNavigate={handleNavigate} />;
+    case "dashboard":
+      return <Dashboard onNavigate={handleNavigate} />;
+    default:
+      return <MarketplaceFeed onNavigate={handleNavigate} />;
+  }
+}
