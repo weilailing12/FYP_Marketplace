@@ -20,29 +20,55 @@ export const Register = ({ onNavigate }: RegisterProps) => {
         console.log("OCR Text:", text); // For debugging
 
         const textLines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        console.log("Filtered lines:", textLines); // Debug: show all detected lines
+
         let name = "Not detected";
         let studentId = "Not detected";
 
-        // Look for lines containing "name" or similar
-        for (const line of textLines) {
-          if (line.toLowerCase().includes('name') || line.toLowerCase().includes('student')) {
-            // Extract name after keywords
-            const match = line.match(/(?:name|student)[:\s]*(.+)/i);
-            if (match) {
-              name = match[1].trim();
+        // Pattern for ID: 2 digits, 3 letters, 4 digits
+        const idPattern = /^\d{2}[A-Za-z]{3}\d{4}$/;
+
+        // Primary strategy: find line matching ID pattern and use previous line as name
+        for (let i = 0; i < textLines.length; i++) {
+          if (idPattern.test(textLines[i].replace(/\s+/g, ''))) {
+            studentId = textLines[i];
+            if (i > 0) {
+              name = textLines[i - 1];
             }
-          }
-          // Look for ID numbers
-          const idMatch = line.match(/\d{7,8}/);
-          if (idMatch) {
-            studentId = idMatch[0];
+            break;
           }
         }
 
-        // Fallback: first line as name, any line with ID
-        if (name === "Not detected" && textLines.length > 0) {
+        // Secondary strategy: keyword search if primary failed
+        if (studentId === "Not detected") {
+          for (const line of textLines) {
+            const lowerLine = line.toLowerCase();
+            if (lowerLine.includes('name') || lowerLine.includes('student') || lowerLine.includes('nama')) {
+              const match = line.match(/(?:name|student|nama)[:\s]*(.+)/i);
+              if (match) {
+                name = match[1].trim();
+              } else {
+                const keywordIndex = lowerLine.indexOf('name') !== -1 ? lowerLine.indexOf('name') :
+                                      lowerLine.indexOf('student') !== -1 ? lowerLine.indexOf('student') :
+                                      lowerLine.indexOf('nama');
+                if (keywordIndex !== -1) {
+                  name = line.substring(keywordIndex + 4).trim();
+                }
+              }
+            }
+            const idMatch = line.match(/\d{7,8}/);
+            if (idMatch) {
+              studentId = idMatch[0];
+            }
+          }
+        }
+
+        // Fallback name detection if still missing
+        if (name === "Not detected" && studentId === "Not detected" && textLines.length > 0) {
           name = textLines[0];
         }
+
+        console.log("Detected name:", name, "ID:", studentId); // Debug output
 
         setFormData({
           name,
