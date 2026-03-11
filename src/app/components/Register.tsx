@@ -17,12 +17,36 @@ export const Register = ({ onNavigate }: RegisterProps) => {
       const imageSrc = webcamRef.current.getScreenshot();
       if (imageSrc) {
         const { data: { text } } = await Tesseract.recognize(imageSrc, "eng");
-        const idMatch = text.match(/\d{7,8}/); 
-        const lines = text.split("\n").filter(line => line.trim().length > 5);
+        console.log("OCR Text:", text); // For debugging
+
+        const textLines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        let name = "Not detected";
+        let studentId = "Not detected";
+
+        // Look for lines containing "name" or similar
+        for (const line of textLines) {
+          if (line.toLowerCase().includes('name') || line.toLowerCase().includes('student')) {
+            // Extract name after keywords
+            const match = line.match(/(?:name|student)[:\s]*(.+)/i);
+            if (match) {
+              name = match[1].trim();
+            }
+          }
+          // Look for ID numbers
+          const idMatch = line.match(/\d{7,8}/);
+          if (idMatch) {
+            studentId = idMatch[0];
+          }
+        }
+
+        // Fallback: first line as name, any line with ID
+        if (name === "Not detected" && textLines.length > 0) {
+          name = textLines[0];
+        }
 
         setFormData({
-          name: lines[0] || "Not detected",
-          studentId: idMatch ? idMatch[0] : "Not detected"
+          name,
+          studentId
         });
       }
       setIsProcessing(false);
@@ -39,6 +63,7 @@ export const Register = ({ onNavigate }: RegisterProps) => {
           audio={false}
           ref={webcamRef}
           screenshotFormat="image/jpeg"
+          videoConstraints={{ facingMode: "environment" }}
           style={{ width: "100%", maxWidth: "400px", borderRadius: "10px" }}
         />
         {/* Viewfinder Overlay */}
