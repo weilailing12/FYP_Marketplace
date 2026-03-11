@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { LoginPage } from "./components/LoginPage";
+import { Register } from "./components/Register";
 import { MarketplaceFeed } from "./components/MarketplaceFeed";
 import { ProductDetails } from "./components/ProductDetails";
 import { CreateListing } from "./components/CreateListing";
 import { ChatMeetup } from "./components/ChatMeetup";
 import { Dashboard } from "./components/Dashboard";
 
-type Page = "login" | "marketplace" | "product" | "create" | "chat" | "dashboard";
+type Page = "login" | "register" |"marketplace" | "product" | "create" | "chat" | "dashboard";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("login");
@@ -26,7 +27,12 @@ export default function App() {
   };
 
   if (!isLoggedIn && currentPage === "login") {
-    return <LoginPage onLogin={handleLogin} />;
+    return <LoginPage onLogin={handleLogin} onNavigate={handleNavigate}/>;
+  }
+
+  // 4. Added "register" to the logic
+  if (!isLoggedIn && currentPage === "register") {
+    return <Register onNavigate={handleNavigate} />;
   }
 
   switch (currentPage) {

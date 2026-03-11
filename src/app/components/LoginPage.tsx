@@ -1,71 +1,119 @@
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import React, { useState } from "react";
 
+// 1. Defined the Props to match your App.tsx logic
 interface LoginPageProps {
   onLogin: () => void;
+  onNavigate: (page: string) => void;
 }
 
-export function LoginPage({ onLogin }: LoginPageProps) {
+export const LoginPage = ({ onLogin, onNavigate }: LoginPageProps) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // For FYP demo purposes, we call the login handler
     onLogin();
   };
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left side - Image */}
-      <div className="hidden lg:flex lg:w-1/2 relative">
-        <img
-          src="https://images.unsplash.com/photo-1632834380561-d1e05839a33a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx1bml2ZXJzaXR5JTIwY2FtcHVzJTIwc3R1ZGVudHN8ZW58MXx8fHwxNzcyNzIxMjYxfDA&ixlib=rb-4.1.0&q=80&w=1080"
-          alt="University campus"
-          className="object-cover w-full h-full"
-        />
-        <div className="absolute inset-0 bg-blue-900/20" />
-      </div>
+    <div style={styles.container}>
+      <div style={styles.card}>
+        <h2 style={styles.title}>CampusTrade</h2>
+        <p style={styles.subtitle}>University Marketplace</p>
 
-      {/* Right side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-3xl">Welcome to CampusTrade</CardTitle>
-            <CardDescription>
-              Sign in with your university email to continue
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">University Email (.edu.my)</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="student@university.edu.my"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-                Login
-              </Button>
-              <div className="text-center pt-2">
-                <a href="#" className="text-sm text-gray-600 hover:text-blue-600">
-                  New student? Register and verify your email
-                </a>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>University Email</label>
+            <input
+              type="email"
+              placeholder="student@university.edu"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={styles.input}
+              required
+            />
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Password</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={styles.input}
+              required
+            />
+          </div>
+
+          <button type="submit" style={styles.loginButton}>
+            Login
+          </button>
+        </form>
+
+        <div style={styles.footer}>
+          <span>New Student? </span>
+          <button 
+            onClick={() => onNavigate("register")} // 2. Leads to the ID scan page
+            style={styles.linkButton}
+          >
+            Create account & Verify ID
+          </button>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+// Basic inline styling to keep it clean without a separate CSS file
+const styles = {
+  container: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    height: "100vh",
+    backgroundColor: "#f4f7f6",
+  },
+  card: {
+    backgroundColor: "#fff",
+    padding: "40px",
+    borderRadius: "12px",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+    width: "100%",
+    maxWidth: "400px",
+    textAlign: "center" as const,
+  },
+  title: { color: "#0056b3", margin: "0 0 10px 0" },
+  subtitle: { color: "#666", marginBottom: "30px" },
+  form: { textAlign: "left" as const },
+  inputGroup: { marginBottom: "20px" },
+  label: { display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "14px" },
+  input: {
+    width: "100%",
+    padding: "12px",
+    borderRadius: "6px",
+    border: "1px solid #ddd",
+    boxSizing: "border-box" as const,
+  },
+  loginButton: {
+    width: "100%",
+    padding: "12px",
+    backgroundColor: "#0056b3",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontWeight: "bold",
+    fontSize: "16px",
+  },
+  footer: { marginTop: "25px", fontSize: "14px" },
+  linkButton: {
+    background: "none",
+    border: "none",
+    color: "#0056b3",
+    textDecoration: "underline",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+};
