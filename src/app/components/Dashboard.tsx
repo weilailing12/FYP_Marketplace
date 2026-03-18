@@ -107,7 +107,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 <p className="text-gray-600">student@utar.edu.my</p>
                 <p className="text-sm text-gray-500 mt-1">Member since Jan 2025</p>
               </div>
-              <Button variant="outline">Edit Profile</Button>
+              <Button variant="outline" onClick={() => onNavigate('profile')}>Edit Profile</Button>
             </div>
           </CardContent>
         </Card>

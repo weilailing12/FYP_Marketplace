@@ -6,8 +6,9 @@ import { ProductDetails } from "./components/ProductDetails";
 import { CreateListing } from "./components/CreateListing";
 import { ChatMeetup } from "./components/ChatMeetup";
 import { Dashboard } from "./components/Dashboard";
+import { Profile } from "./components/Profile";
 
-type Page = "login" | "register" |"marketplace" | "product" | "create" | "chat" | "dashboard";
+type Page = "login" | "register" |"marketplace" | "product" | "create" | "chat" | "dashboard" | "profile";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("login");
@@ -46,6 +47,8 @@ export default function App() {
       return <ChatMeetup onNavigate={handleNavigate} />;
     case "dashboard":
       return <Dashboard onNavigate={handleNavigate} />;
+    case "profile":
+      return <Profile onNavigate={handleNavigate} />;
     default:
       return <MarketplaceFeed onNavigate={handleNavigate} />;
   }
