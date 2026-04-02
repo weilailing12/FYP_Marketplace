@@ -1,5 +1,4 @@
-import React, { useRef, useState, useCallback } from "react";
-import Webcam from "react-webcam";
+import React, { useState } from "react";
 import Tesseract from "tesseract.js";
 
 interface RegisterProps {
@@ -7,155 +6,129 @@ interface RegisterProps {
 }
 
 export const Register = ({ onNavigate }: RegisterProps) => {
-  const webcamRef = useRef<Webcam>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: "", studentId: "" });
 
-  const handleScan = useCallback(async () => {
-    if (!webcamRef.current) return;
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
     setIsProcessing(true);
 
-    const imageSrc = webcamRef.current.getScreenshot();
-    if (!imageSrc) {
-      setIsProcessing(false);
-      return;
-    }
+    const reader = new FileReader();
 
-    const img = new Image();
-    img.src = imageSrc;
+    reader.onload = async () => {
+      const img = new Image();
+      img.src = reader.result as string;
 
-    img.onload = async () => {
-      // ✅ Create bigger canvas (improves OCR a LOT)
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
+      setImagePreview(img.src);
 
-      canvas.width = 1200;
-      canvas.height = 400;
+      img.onload = async () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
 
-      if (!ctx) {
-        setIsProcessing(false);
-        return;
-      }
+        canvas.width = img.width;
+        canvas.height = img.height;
 
-      // ✅ Strong image enhancement
-      ctx.filter = "grayscale(100%) contrast(400%) brightness(120%)";
+        if (!ctx) return;
 
-      // ✅ Safer crop (less chance cut text)
-      ctx.drawImage(
-        img,
-        80,   // x
-        80,   // y
-        600,  // width
-        250,  // height
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      );
+        // ✅ Image enhancement
+        ctx.filter = "grayscale(100%) contrast(350%) brightness(110%)";
+        ctx.drawImage(img, 0, 0);
 
-      const processedImage = canvas.toDataURL("image/jpeg");
+        const processedImage = canvas.toDataURL("image/jpeg");
 
-      try {
-        const { data: { text } } = await Tesseract.recognize(
-          processedImage,
-          "eng",
-          {
-            tessedit_pageseg_mode: 6,
-            tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
-          } as any
-        );
-
-        console.log("OCR RAW:", text);
-
-        // ✅ Fix common OCR mistakes
-        const fixOCR = (t: string) => {
-          return t
-            .replace(/O/g, "0")
-            .replace(/I/g, "1")
-            .replace(/S/g, "5")
-            .replace(/B/g, "8");
-        };
-
-        // ✅ Clean lines
-        const lines = text
-          .split("\n")
-          .map(l => l.trim())
-          .filter(l => l.length > 3);
-
-        console.log("LINES:", lines);
-
-        const utarIdPattern = /\d{2}[A-Z]{3}\d{5}/;
-
-        let detectedId = "";
-        let detectedName = "";
-
-        for (let i = 0; i < lines.length; i++) {
-          const cleanLine = fixOCR(lines[i].replace(/\s+/g, ""));
-
-          if (utarIdPattern.test(cleanLine)) {
-            detectedId = cleanLine;
-
-            // ✅ Try get name above
-            if (i > 0) detectedName = lines[i - 1];
-
-            break;
-          }
-        }
-
-        // ✅ Fallback: find best name candidate
-        if (!detectedName) {
-          const possibleNames = lines.filter(line =>
-            /^[A-Z\s]+$/.test(line) && line.length > 5
+        try {
+          const { data: { text } } = await Tesseract.recognize(
+            processedImage,
+            "eng",
+            {
+              tessedit_pageseg_mode: 6,
+              tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+            } as any
           );
 
-          detectedName = possibleNames[0] || "";
+          console.log("OCR RAW:", text);
+
+          // 🔧 Fix OCR mistakes
+          const fixOCR = (t: string) => {
+            return t
+              .replace(/O/g, "0")
+              .replace(/I/g, "1")
+              .replace(/S/g, "5")
+              .replace(/B/g, "8");
+          };
+
+          const lines = text
+            .split("\n")
+            .map(l => l.trim())
+            .filter(l => l.length > 3);
+
+          const utarIdPattern = /\d{2}[A-Z]{3}\d{5}/;
+
+          let detectedId = "";
+          let detectedName = "";
+
+          for (let i = 0; i < lines.length; i++) {
+            const cleanLine = fixOCR(lines[i].replace(/\s+/g, ""));
+
+            if (utarIdPattern.test(cleanLine)) {
+              detectedId = cleanLine;
+              detectedName = lines[i - 1] || "";
+              break;
+            }
+          }
+
+          // ✅ fallback name detection
+          if (!detectedName) {
+            const possibleNames = lines.filter(line =>
+              /^[A-Z\s]+$/.test(line) && line.length > 5
+            );
+
+            detectedName = possibleNames[0] || "";
+          }
+
+          setFormData({
+            name: detectedName,
+            studentId: detectedId
+          });
+
+        } catch (err) {
+          console.error("OCR Error:", err);
         }
 
-        console.log("FINAL:", { detectedName, detectedId });
-
-        setFormData({
-          name: detectedName,
-          studentId: detectedId
-        });
-
-      } catch (err) {
-        console.error("OCR Error:", err);
-      }
-
-      setIsProcessing(false);
+        setIsProcessing(false);
+      };
     };
 
-  }, [webcamRef]);
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div style={{ padding: "40px", textAlign: "center", fontFamily: "Arial" }}>
       <h2>Student ID Verification</h2>
-      <p>Scan your ID to automatically fill your registration details.</p>
 
-      <div style={{ position: "relative", display: "inline-block", margin: "20px 0" }}>
-        <Webcam
-          audio={false}
-          ref={webcamRef}
-          screenshotFormat="image/jpeg"
-          videoConstraints={{ facingMode: "environment" }}
-          style={{ width: "100%", maxWidth: "400px", borderRadius: "10px" }}
-        />
-        <div style={{
-          position: "absolute", top: "20%", left: "10%", right: "10%", bottom: "20%",
-          border: "2px solid #00ff00", pointerEvents: "none"
-        }}></div>
-      </div>
+      <p>Please upload a clear photo of your Student ID.</p>
 
-      <div>
-        <button
-          onClick={handleScan}
-          disabled={isProcessing}
-          style={{ padding: "10px 20px", backgroundColor: "#0056b3", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}
-        >
-          {isProcessing ? "Processing..." : "Scan Card"}
-        </button>
-      </div>
+      <input 
+        type="file" 
+        accept="image/*" 
+        onChange={handleUpload}
+        style={{ margin: "20px 0" }}
+      />
+
+      {isProcessing && <p>Processing OCR... ⏳</p>}
+
+      {imagePreview && (
+        <div style={{ margin: "20px 0" }}>
+          <img 
+            src={imagePreview} 
+            alt="Preview" 
+            style={{ maxWidth: "300px", borderRadius: "10px" }} 
+          />
+        </div>
+      )}
 
       <div style={{ maxWidth: "400px", margin: "20px auto", textAlign: "left" }}>
         <label>Full Name</label>
@@ -164,6 +137,7 @@ export const Register = ({ onNavigate }: RegisterProps) => {
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
         />
+
         <label>Student ID</label>
         <input
           style={{ width: "100%", padding: "10px", margin: "10px 0", border: "1px solid #ccc" }}
@@ -171,7 +145,10 @@ export const Register = ({ onNavigate }: RegisterProps) => {
           onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
         />
 
-        <button onClick={() => alert("Proceeding to Email Verification...")} style={{ width: "100%", padding: "12px", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "5px", marginTop: "10px" }}>
+        <button 
+          onClick={() => alert("Proceeding to Email Verification...")} 
+          style={{ width: "100%", padding: "12px", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "5px", marginTop: "10px" }}
+        >
           Finish Registration
         </button>
 
