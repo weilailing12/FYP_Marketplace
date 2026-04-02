@@ -12,68 +12,120 @@ export const Register = ({ onNavigate }: RegisterProps) => {
   const [formData, setFormData] = useState({ name: "", studentId: "" });
 
   const handleScan = useCallback(async () => {
-    if (webcamRef.current) {
-      setIsProcessing(true);
-      const imageSrc = webcamRef.current.getScreenshot();
+    if (!webcamRef.current) return;
 
-      if (imageSrc) {
-        const img = new Image();
-        img.src = imageSrc;
-        img.onload = async () => {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
+    setIsProcessing(true);
 
-          // Focus on the strip where Name and ID live on UTAR cards
-          canvas.width = 500;
-          canvas.height = 150;
-          
-
-          if (ctx) {
-            ctx.filter = "grayscale(100%) contrast(300%) brightness(110%)";
-            // Crop source: avoiding logo on left, focusing on text area
-            ctx.drawImage(img, 150, 100, 400, 150, 0, 0, 500, 150);
-
-            const processedImage = canvas.toDataURL("image/jpeg");
-
-            try {
-              const { data: { text } } = await Tesseract.recognize(processedImage, "eng", {
-                // Use 'as any' to bypass strict Tesseract type errors
-                workerParams: {
-                  tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
-                }
-              } as any);
-
-              console.log("OCR Result:", text);
-
-              const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 5);
-              const utarIdPattern = /\d{2}[A-Z]{3}\d{5}/; // e.g., 22ACB07233
-
-              let detectedName = "";
-              let detectedId = "";
-
-              for (let i = 0; i < lines.length; i++) {
-                const cleanLine = lines[i].replace(/\s+/g, '');
-                if (utarIdPattern.test(cleanLine)) {
-                  detectedId = cleanLine;
-                  // UTAR Logic: Name is usually the line above the ID
-                  detectedName = lines[i - 1] || "Not detected";
-                  break;
-                }
-              }
-
-              setFormData({
-                name: detectedName || (lines[0] !== detectedId ? lines[0] : ""),
-                studentId: detectedId
-              });
-
-            } catch (err) {
-              console.error("OCR Error:", err);
-            }
-          }
-          setIsProcessing(false);
-        };
-      }
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (!imageSrc) {
+      setIsProcessing(false);
+      return;
     }
+
+    const img = new Image();
+    img.src = imageSrc;
+
+    img.onload = async () => {
+      // ✅ Create bigger canvas (improves OCR a LOT)
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = 1200;
+      canvas.height = 400;
+
+      if (!ctx) {
+        setIsProcessing(false);
+        return;
+      }
+
+      // ✅ Strong image enhancement
+      ctx.filter = "grayscale(100%) contrast(400%) brightness(120%)";
+
+      // ✅ Safer crop (less chance cut text)
+      ctx.drawImage(
+        img,
+        80,   // x
+        80,   // y
+        600,  // width
+        250,  // height
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      const processedImage = canvas.toDataURL("image/jpeg");
+
+      try {
+        const { data: { text } } = await Tesseract.recognize(
+          processedImage,
+          "eng",
+          {
+            tessedit_pageseg_mode: 6,
+            tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+          } as any
+        );
+
+        console.log("OCR RAW:", text);
+
+        // ✅ Fix common OCR mistakes
+        const fixOCR = (t: string) => {
+          return t
+            .replace(/O/g, "0")
+            .replace(/I/g, "1")
+            .replace(/S/g, "5")
+            .replace(/B/g, "8");
+        };
+
+        // ✅ Clean lines
+        const lines = text
+          .split("\n")
+          .map(l => l.trim())
+          .filter(l => l.length > 3);
+
+        console.log("LINES:", lines);
+
+        const utarIdPattern = /\d{2}[A-Z]{3}\d{5}/;
+
+        let detectedId = "";
+        let detectedName = "";
+
+        for (let i = 0; i < lines.length; i++) {
+          const cleanLine = fixOCR(lines[i].replace(/\s+/g, ""));
+
+          if (utarIdPattern.test(cleanLine)) {
+            detectedId = cleanLine;
+
+            // ✅ Try get name above
+            if (i > 0) detectedName = lines[i - 1];
+
+            break;
+          }
+        }
+
+        // ✅ Fallback: find best name candidate
+        if (!detectedName) {
+          const possibleNames = lines.filter(line =>
+            /^[A-Z\s]+$/.test(line) && line.length > 5
+          );
+
+          detectedName = possibleNames[0] || "";
+        }
+
+        console.log("FINAL:", { detectedName, detectedId });
+
+        setFormData({
+          name: detectedName,
+          studentId: detectedId
+        });
+
+      } catch (err) {
+        console.error("OCR Error:", err);
+      }
+
+      setIsProcessing(false);
+    };
+
   }, [webcamRef]);
 
   return (
