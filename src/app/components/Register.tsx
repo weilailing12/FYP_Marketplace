@@ -11,99 +11,33 @@ export const Register = ({ onNavigate }: RegisterProps) => {
   const [formData, setFormData] = useState({ name: "", studentId: "" });
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const file = event.target.files?.[0];
+  if (!file) return;
 
-    setIsProcessing(true);
+  setIsProcessing(true);
 
-    const reader = new FileReader();
+  const formData = new FormData();
+  formData.append("file", file);
 
-    reader.onload = async () => {
-      const img = new Image();
-      img.src = reader.result as string;
+  try {
+    const res = await fetch("http://127.0.0.1:5000/ocr", {
+      method: "POST",
+      body: formData
+    });
 
-      setImagePreview(img.src);
+    const data = await res.json();
 
-      img.onload = async () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
+    setFormData({
+      name: data.name,
+      studentId: data.studentId
+    });
 
-        canvas.width = img.width;
-        canvas.height = img.height;
+  } catch (err) {
+    console.error("API Error:", err);
+  }
 
-        if (!ctx) return;
-
-        // ✅ Image enhancement
-        ctx.filter = "grayscale(100%) contrast(350%) brightness(110%)";
-        ctx.drawImage(img, 0, 0);
-
-        const processedImage = canvas.toDataURL("image/jpeg");
-
-        try {
-          const { data: { text } } = await Tesseract.recognize(
-            processedImage,
-            "eng",
-            {
-              tessedit_pageseg_mode: 6,
-              tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
-            } as any
-          );
-
-          console.log("OCR RAW:", text);
-
-          // 🔧 Fix OCR mistakes
-          const fixOCR = (t: string) => {
-            return t
-              .replace(/O/g, "0")
-              .replace(/I/g, "1")
-              .replace(/S/g, "5")
-              .replace(/B/g, "8");
-          };
-
-          const lines = text
-            .split("\n")
-            .map(l => l.trim())
-            .filter(l => l.length > 3);
-
-          const utarIdPattern = /\d{2}[A-Z]{3}\d{5}/;
-
-          let detectedId = "";
-          let detectedName = "";
-
-          for (let i = 0; i < lines.length; i++) {
-            const cleanLine = fixOCR(lines[i].replace(/\s+/g, ""));
-
-            if (utarIdPattern.test(cleanLine)) {
-              detectedId = cleanLine;
-              detectedName = lines[i - 1] || "";
-              break;
-            }
-          }
-
-          // ✅ fallback name detection
-          if (!detectedName) {
-            const possibleNames = lines.filter(line =>
-              /^[A-Z\s]+$/.test(line) && line.length > 5
-            );
-
-            detectedName = possibleNames[0] || "";
-          }
-
-          setFormData({
-            name: detectedName,
-            studentId: detectedId
-          });
-
-        } catch (err) {
-          console.error("OCR Error:", err);
-        }
-
-        setIsProcessing(false);
-      };
-    };
-
-    reader.readAsDataURL(file);
-  };
+  setIsProcessing(false);
+};
 
   return (
     <div style={{ padding: "40px", textAlign: "center", fontFamily: "Arial" }}>
