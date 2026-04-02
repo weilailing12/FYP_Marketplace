@@ -15,69 +15,66 @@ export const Register = ({ onNavigate }: RegisterProps) => {
     if (webcamRef.current) {
       setIsProcessing(true);
       const imageSrc = webcamRef.current.getScreenshot();
+
       if (imageSrc) {
-        const { data: { text } } = await Tesseract.recognize(imageSrc, "eng");
-        console.log("OCR Text:", text); // For debugging
+        const img = new Image();
+        img.src = imageSrc;
+        img.onload = async () => {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
 
-        const textLines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-        console.log("Filtered lines:", textLines); // Debug: show all detected lines
+          // Focus on the strip where Name and ID live on UTAR cards
+          canvas.width = 500;
+          canvas.height = 150;
+          
 
-        let name = "Not detected";
-        let studentId = "Not detected";
+          if (ctx) {
+            ctx.filter = "grayscale(100%) contrast(300%) brightness(110%)";
+            // Crop source: avoiding logo on left, focusing on text area
+            ctx.drawImage(img, 150, 100, 400, 150, 0, 0, 500, 150);
 
-        // Pattern for ID: 2 digits, 3 letters, 4 digits
-        const idPattern = /^\d{2}[A-Za-z]{3}\d{4}$/;
+            const processedImage = canvas.toDataURL("image/jpeg");
 
-        // Primary strategy: find line matching ID pattern and use previous line as name
-        for (let i = 0; i < textLines.length; i++) {
-          if (idPattern.test(textLines[i].replace(/\s+/g, ''))) {
-            studentId = textLines[i];
-            if (i > 0) {
-              name = textLines[i - 1];
-            }
-            break;
-          }
-        }
+            try {
+              const { data: { text } } = await Tesseract.recognize(processedImage, "eng", {
+                // Use 'as any' to bypass strict Tesseract type errors
+                workerParams: {
+                  tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+                }
+              } as any);
 
-        // Secondary strategy: keyword search if primary failed
-        if (studentId === "Not detected") {
-          for (const line of textLines) {
-            const lowerLine = line.toLowerCase();
-            if (lowerLine.includes('name') || lowerLine.includes('student') || lowerLine.includes('nama')) {
-              const match = line.match(/(?:name|student|nama)[:\s]*(.+)/i);
-              if (match) {
-                name = match[1].trim();
-              } else {
-                const keywordIndex = lowerLine.indexOf('name') !== -1 ? lowerLine.indexOf('name') :
-                                      lowerLine.indexOf('student') !== -1 ? lowerLine.indexOf('student') :
-                                      lowerLine.indexOf('nama');
-                if (keywordIndex !== -1) {
-                  name = line.substring(keywordIndex + 4).trim();
+              console.log("OCR Result:", text);
+
+              const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 5);
+              const utarIdPattern = /\d{2}[A-Z]{3}\d{5}/; // e.g., 22ACB07233
+
+              let detectedName = "";
+              let detectedId = "";
+
+              for (let i = 0; i < lines.length; i++) {
+                const cleanLine = lines[i].replace(/\s+/g, '');
+                if (utarIdPattern.test(cleanLine)) {
+                  detectedId = cleanLine;
+                  // UTAR Logic: Name is usually the line above the ID
+                  detectedName = lines[i - 1] || "Not detected";
+                  break;
                 }
               }
-            }
-            const idMatch = line.match(/\d{7,8}/);
-            if (idMatch) {
-              studentId = idMatch[0];
+
+              setFormData({
+                name: detectedName || (lines[0] !== detectedId ? lines[0] : ""),
+                studentId: detectedId
+              });
+
+            } catch (err) {
+              console.error("OCR Error:", err);
             }
           }
-        }
-
-        // Fallback name detection if still missing
-        if (name === "Not detected" && studentId === "Not detected" && textLines.length > 0) {
-          name = textLines[0];
-        }
-
-        console.log("Detected name:", name, "ID:", studentId); // Debug output
-
-        setFormData({
-          name,
-          studentId
-        });
+          setIsProcessing(false);
+        };
       }
-      setIsProcessing(false);
     }
-  }, []);
+  }, [webcamRef]);
 
   return (
     <div style={{ padding: "40px", textAlign: "center", fontFamily: "Arial" }}>
@@ -92,7 +89,6 @@ export const Register = ({ onNavigate }: RegisterProps) => {
           videoConstraints={{ facingMode: "environment" }}
           style={{ width: "100%", maxWidth: "400px", borderRadius: "10px" }}
         />
-        {/* Viewfinder Overlay */}
         <div style={{
           position: "absolute", top: "20%", left: "10%", right: "10%", bottom: "20%",
           border: "2px solid #00ff00", pointerEvents: "none"
@@ -100,8 +96,9 @@ export const Register = ({ onNavigate }: RegisterProps) => {
       </div>
 
       <div>
-        <button 
-          onClick={handleScan} 
+        <button
+          onClick={handleScan}
+          disabled={isProcessing}
           style={{ padding: "10px 20px", backgroundColor: "#0056b3", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}
         >
           {isProcessing ? "Processing..." : "Scan Card"}
@@ -110,24 +107,24 @@ export const Register = ({ onNavigate }: RegisterProps) => {
 
       <div style={{ maxWidth: "400px", margin: "20px auto", textAlign: "left" }}>
         <label>Full Name</label>
-        <input 
-          style={{ width: "100%", padding: "10px", margin: "10px 0" }} 
-          value={formData.name} 
-          onChange={(e) => setFormData({...formData, name: e.target.value})}
+        <input
+          style={{ width: "100%", padding: "10px", margin: "10px 0", border: "1px solid #ccc" }}
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
         />
         <label>Student ID</label>
-        <input 
-          style={{ width: "100%", padding: "10px", margin: "10px 0" }} 
-          value={formData.studentId} 
-          onChange={(e) => setFormData({...formData, studentId: e.target.value})}
+        <input
+          style={{ width: "100%", padding: "10px", margin: "10px 0", border: "1px solid #ccc" }}
+          value={formData.studentId}
+          onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
         />
-        
-        <button onClick={() => alert("Registered!")} style={{ width: "100%", padding: "12px", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "5px" }}>
+
+        <button onClick={() => alert("Proceeding to Email Verification...")} style={{ width: "100%", padding: "12px", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "5px", marginTop: "10px" }}>
           Finish Registration
         </button>
 
-        <button 
-          onClick={() => onNavigate("login")} 
+        <button
+          onClick={() => onNavigate("login")}
           style={{ width: "100%", marginTop: "10px", background: "none", border: "none", color: "#666", cursor: "pointer" }}
         >
           Back to Login
