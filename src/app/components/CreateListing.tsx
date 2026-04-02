@@ -15,6 +15,8 @@ interface CreateListingProps {
 export function CreateListing({ onNavigate }: CreateListingProps) {
   const [uploading, setUploading] = useState(false);
   const [imageUploaded, setImageUploaded] = useState(false);
+  const [productType, setProductType] = useState<"secondhand" | "clubmerch">("secondhand");
+  const [selectedClub, setSelectedClub] = useState<string>("");
 
   const handleImageUpload = () => {
     setUploading(true);
@@ -54,6 +56,19 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="productType">Product Type</Label>
+                <Select value={productType} onValueChange={(value: "secondhand" | "clubmerch") => setProductType(value)}>
+                  <SelectTrigger id="productType">
+                    <SelectValue placeholder="Select product type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="secondhand">Second-hand Item</SelectItem>
+                    <SelectItem value="clubmerch">Club Merchandise</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select required>
                   <SelectTrigger id="category">
@@ -69,6 +84,24 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
                   </SelectContent>
                 </Select>
               </div>
+
+              {productType === "clubmerch" && (
+                <div className="space-y-2">
+                  <Label htmlFor="club">Club</Label>
+                  <Select value={selectedClub} onValueChange={setSelectedClub} required>
+                    <SelectTrigger id="club">
+                      <SelectValue placeholder="Select a club" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BoardGames">BoardGames Club</SelectItem>
+                      <SelectItem value="Yoga">Yoga Club</SelectItem>
+                      <SelectItem value="WorldHistory">WorldHistory Club</SelectItem>
+                      <SelectItem value="Music">Music Club</SelectItem>
+                      <SelectItem value="Photography">Photography Club</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="price">Price (RM)</Label>

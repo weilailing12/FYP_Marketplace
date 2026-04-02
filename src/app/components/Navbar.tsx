@@ -35,6 +35,12 @@ export function Navbar({ onNavigate, currentPage }: NavbarProps) {
           {/* Right side buttons */}
           <div className="flex items-center gap-4">
             <Button
+              onClick={() => onNavigate?.('clubmerch')}
+              variant="outline"
+            >
+              Club Merch
+            </Button>
+            <Button
               onClick={() => onNavigate?.('create')}
               className="bg-blue-600 hover:bg-blue-700"
             >
