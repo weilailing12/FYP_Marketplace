@@ -238,17 +238,16 @@ export function MarketplaceFeed({ onNavigate }: MarketplaceFeedProps) {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="marketplace-container">
       <Navbar onNavigate={onNavigate} currentPage="marketplace" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Filter Bar */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+      <div className="marketplace-filters">
+        <div className="filters-wrapper">
           <div className="flex items-center gap-6 flex-wrap">
             <div className="flex-1 min-w-[200px]">
-              <Label className="text-sm mb-2 block">Category</Label>
+              <Label className="filter-label">Category</Label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger>
+                <SelectTrigger className="filter-select">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
@@ -264,9 +263,9 @@ export function MarketplaceFeed({ onNavigate }: MarketplaceFeedProps) {
             </div>
 
             <div className="flex-1 min-w-[200px]">
-              <Label className="text-sm mb-2 block">Price</Label>
+              <Label className="filter-label">Price</Label>
               <Select value={selectedPrice} onValueChange={setSelectedPrice}>
-                <SelectTrigger>
+                <SelectTrigger className="filter-select">
                   <SelectValue placeholder="All Prices" />
                 </SelectTrigger>
                 <SelectContent>
@@ -285,41 +284,47 @@ export function MarketplaceFeed({ onNavigate }: MarketplaceFeedProps) {
                 checked={showClubMerch}
                 onCheckedChange={setShowClubMerch}
               />
-              <Label htmlFor="club-merch" className="cursor-pointer">
+              <Label htmlFor="club-merch" className="cursor-pointer text-sm font-medium">
                 Club Merch Only
               </Label>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <Card
-              key={product.id}
-              className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => onNavigate('product', product.id)}
-            >
-              <div className="relative aspect-square">
-                <img
-                  src={product.image}
-                  alt={product.title}
-                  className="object-cover w-full h-full"
-                />
-                {product.verified && (
-                  <Badge className="absolute top-2 right-2 bg-green-600 hover:bg-green-700">
-                    <ShieldCheck className="h-3 w-3 mr-1" />
-                    Verified Real Photo
-                  </Badge>
-                )}
+      {/* Product Grid */}
+      <div className="marketplace-grid">
+        {filteredProducts.map((product) => (
+          <div
+            key={product.id}
+            className="product-card"
+            onClick={() => onNavigate('product', product.id)}
+          >
+            <div className="relative">
+              <img
+                src={product.image}
+                alt={product.title}
+                className="product-image"
+              />
+              {product.verified && (
+                <Badge className={`absolute top-3 right-3 ${product.productType === "clubmerch" ? "club-badge" : "verified-badge"}`}>
+                  <ShieldCheck className="h-3 w-3 mr-1" />
+                  {product.productType === "clubmerch" ? product.clubName : "Verified"}
+                </Badge>
+              )}
+            </div>
+            <div className="product-info">
+              <span className="product-category">{product.category}</span>
+              <h3 className="product-title">{product.title}</h3>
+              <div className="product-footer">
+                <p className="product-price">RM {product.price}</p>
+                <span className={`product-badge ${product.productType === "clubmerch" ? "club-badge" : "verified-badge"}`}>
+                  {product.productType === "clubmerch" ? "Club Merch" : "2nd Hand"}
+                </span>
               </div>
-              <CardContent className="p-4">
-                <h3 className="line-clamp-1 mb-2">{product.title}</h3>
-                <p className="text-blue-600">RM {product.price}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

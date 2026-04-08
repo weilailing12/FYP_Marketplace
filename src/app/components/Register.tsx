@@ -53,62 +53,63 @@ export const Register = ({ onNavigate }: RegisterProps) => {
   };
 
   return (
-    <div style={{ padding: "40px", textAlign: "center", fontFamily: "Arial" }}>
-      <h2>Student ID Verification</h2>
+    <div className="register-container">
+      <div className="register-card">
+        <h2 className="register-title">Student ID Verification</h2>
+        <p className="register-subtitle">Please upload a clear photo of your Student ID.</p>
 
-      <p>Please upload a clear photo of your Student ID.</p>
+        <div className="upload-section">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleUpload}
+            className="upload-input"
+          />
 
-      <input type="file" accept="image/*" onChange={handleUpload} style={{ margin: "20px 0" }} />
+          {isProcessing && <p className="processing-message">Processing OCR...</p>}
+          {error && <p className="error-message">{error}</p>}
 
-      {isProcessing && <p>Processing OCR...</p>}
-      {error && <p style={{ color: "#b00020" }}>{error}</p>}
-
-      {imagePreview && (
-        <div style={{ margin: "20px 0" }}>
-          <img src={imagePreview} alt="Preview" style={{ maxWidth: "300px", borderRadius: "10px" }} />
+          {imagePreview && (
+            <div className="image-preview">
+              <img src={imagePreview} alt="Preview" />
+            </div>
+          )}
         </div>
-      )}
 
-      <div style={{ maxWidth: "400px", margin: "20px auto", textAlign: "left" }}>
-        <label>Full Name</label>
-        <input
-          style={{ width: "100%", padding: "10px", margin: "10px 0", border: "1px solid #ccc" }}
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          placeholder="Auto-filled from card (edit if needed)"
-        />
+        <div className="form-section">
+          <label>Full Name</label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="Auto-filled from card (edit if needed)"
+          />
 
-        <label>Student ID</label>
-        <input
-          style={{ width: "100%", padding: "10px", margin: "10px 0", border: "1px solid #ccc" }}
-          value={formData.studentId}
-          onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
-          placeholder="Auto-filled from card (edit if needed)"
-        />
+          <label>Student ID</label>
+          <input
+            type="text"
+            value={formData.studentId}
+            onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
+            placeholder="Auto-filled from card (edit if needed)"
+          />
 
-        <button
-          onClick={() => alert("Proceeding to Email Verification...")}
-          style={{
-            width: "100%",
-            padding: "12px",
-            backgroundColor: "#28a745",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            marginTop: "10px"
-          }}
-          disabled={isProcessing}
-        >
-          Finish Registration
-        </button>
+          <button
+            onClick={() => alert("Proceeding to Email Verification...")}
+            className="register-button"
+            disabled={isProcessing}
+          >
+            Finish Registration
+          </button>
 
-        <button
-          onClick={() => onNavigate("login")}
-          style={{ width: "100%", marginTop: "10px", background: "none", border: "none", color: "#666", cursor: "pointer" }}
-          disabled={isProcessing}
-        >
-          Back to Login
-        </button>
+          <button
+            onClick={() => onNavigate("login")}
+            className="link-button"
+            style={{ display: "block", marginTop: "16px", width: "100%", textAlign: "center" }}
+            disabled={isProcessing}
+          >
+            Back to Login
+          </button>
+        </div>
       </div>
     </div>
   );
