@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Navbar } from "./Navbar";
 import { Card, CardContent } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
 import { Badge } from "./ui/badge";
 import { ShieldCheck } from "lucide-react";
@@ -199,16 +198,11 @@ interface MarketplaceFeedProps {
 }
 
 export function MarketplaceFeed({ onNavigate }: MarketplaceFeedProps) {
-  const [showClubMerch, setShowClubMerch] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedPrice, setSelectedPrice] = useState("all");
 
   // Filter products based on current filters
   const filteredProducts = mockProducts.filter((product) => {
-    // Club merch filter
-    if (showClubMerch && product.productType !== "clubmerch") {
-      return false;
-    }
 
     // Category filter
     if (selectedCategory !== "all" && product.category.toLowerCase() !== selectedCategory) {
@@ -276,17 +270,6 @@ export function MarketplaceFeed({ onNavigate }: MarketplaceFeedProps) {
                   <SelectItem value="500+">RM 500+</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="club-merch"
-                checked={showClubMerch}
-                onCheckedChange={setShowClubMerch}
-              />
-              <Label htmlFor="club-merch" className="cursor-pointer text-sm font-medium">
-                Club Merch Only
-              </Label>
             </div>
           </div>
         </div>
