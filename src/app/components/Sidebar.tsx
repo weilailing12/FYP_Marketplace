@@ -32,10 +32,9 @@ export function Sidebar({ onNavigate, currentPage, isOpen, onToggle }: SidebarPr
       {/* Sidebar */}
       <div className={cn(
         "fixed left-0 top-0 h-screen bg-white border-r shadow-sm transition-transform duration-300 ease-in-out z-40 w-64",
-        isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="p-6 pt-16">
-          <h1 className="text-2xl font-bold text-blue-600 mb-8">CampusTrade</h1>
           <nav className="space-y-2">
             {menuItems.map((item) => (
               <Button

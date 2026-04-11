@@ -19,7 +19,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("login");
   const [selectedProductId, setSelectedProductId] = useState<string | undefined>();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleNavigate = (page: string, productId?: string) => {
     setCurrentPage(page as Page);
