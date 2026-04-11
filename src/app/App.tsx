@@ -10,6 +10,7 @@ import { Profile } from "./components/Profile";
 import { ClubMerchPage } from "./components/ClubMerchPage";
 import { LostAndFoundPage } from "./components/LostAndFoundPage";
 import { WishlistPage } from "./components/WishList";
+import { Navbar } from "./components/Navbar";
 import { Sidebar } from "./components/Sidebar";
 
 type Page = "login" | "register" | "marketplace" | "product" | "create" | "chat" | "dashboard" | "profile" | "clubmerch" | "lostfound" | "wishlist";
@@ -67,15 +68,18 @@ export default function App() {
   };
 
   return (
-    <div className="flex">
+    <div className="min-h-screen flex">
       <Sidebar
         onNavigate={handleNavigate}
         currentPage={currentPage}
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
       />
-      <div className={`flex-1 transition-all duration-300 ease-in-out ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
-        {renderContent()}
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-0'}`}>
+        <Navbar onNavigate={handleNavigate} currentPage={currentPage} />
+        <main className="pt-20">
+          {renderContent()}
+        </main>
       </div>
     </div>
   );

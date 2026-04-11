@@ -15,8 +15,6 @@ export function Sidebar({ onNavigate, currentPage, isOpen, onToggle }: SidebarPr
     { label: "Club Merchandise", page: "clubmerch", icon: "👕" },
     { label: "Services", page: "chat", icon: "💼" },
     { label: "Lost & Found Item", page: "lostfound", icon: "🔍" },
-    { label: "Sell The Product", page: "create", icon: "➕" },
-    { label: "My Profile", page: "dashboard", icon: "👤" },
   ];
 
   return (
