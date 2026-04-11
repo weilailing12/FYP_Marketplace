@@ -11,6 +11,7 @@ import { ClubMerchPage } from "./components/ClubMerchPage";
 import { LostAndFoundPage } from "./components/LostAndFoundPage";
 import { WishlistPage } from "./components/WishList"; // Make sure your file is named WishList.tsx!
 import { Sidebar } from "./components/Sidebar";
+import { Navbar } from "./components/Navbar";
 
 type Page = "login" | "register" | "marketplace" | "product" | "create" | "chat" | "dashboard" | "profile" | "clubmerch" | "lostfound" | "wishlist";
 
@@ -56,8 +57,8 @@ export default function App() {
   };
 
   return (
-    <div className="relative min-h-screen bg-gray-50">
-      {/* 1. Sidebar is floating on top */}
+    <div className="min-h-screen flex bg-gray-50">
+      {/* 1. Sidebar */}
       <Sidebar
         onNavigate={handleNavigate}
         currentPage={currentPage}
@@ -65,10 +66,17 @@ export default function App() {
         onToggle={() => setSidebarOpen(!sidebarOpen)}
       />
       
-      {/* 2. Page content shifts to the right when Sidebar is open */}
-      <div className={`transition-all duration-300 ease-in-out ${sidebarOpen ? 'lg:ml-64' : 'ml-0'}`}>
-        {/* We removed the central Navbar here so the pages can render their own! */}
-        {renderContent()}
+      {/* 2. Main Content Area (Shifts right when Sidebar is open) */}
+      <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'lg:ml-64' : 'ml-0'}`}>
+        
+        {/* 3. The Global Navbar is back! */}
+        <Navbar onNavigate={handleNavigate} currentPage={currentPage} />
+        
+        {/* 4. Page Content */}
+        <main className="flex-1">
+          {renderContent()}
+        </main>
+
       </div>
     </div>
   );
