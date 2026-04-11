@@ -15,7 +15,7 @@ interface Message {
   text: string;
   timestamp: string;
   imageUrl?: string;
-  isMeetupProposal?: boolean; // New flag for meetup messages
+  isMeetupProposal?: boolean; 
 }
 
 interface ChatMeetupProps {
@@ -36,6 +36,16 @@ export function ChatMeetup({ onNavigate }: ChatMeetupProps) {
   const [inputText, setInputText] = useState("");
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ---> THIS IS THE CRITICAL FUNCTION THAT WAS MISSING! <---
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      setAttachedImage(previewUrl);
+    }
+  };
+  // ---------------------------------------------------------
 
   const handleSendMessage = (textOverride?: string, isProposal = false) => {
     const textToSend = textOverride || inputText;
@@ -144,7 +154,7 @@ export function ChatMeetup({ onNavigate }: ChatMeetupProps) {
                     m.isMeetupProposal ? "bg-green-50 border-2 border-green-200 text-green-900" : 
                     m.sender === "me" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-900"
                   }`}>
-                    {m.imageUrl && <img src={m.imageUrl} className="w-full rounded-md mb-2" />}
+                    {m.imageUrl && <img src={m.imageUrl} className="w-full rounded-md mb-2" alt="attachment" />}
                     <p className="whitespace-pre-line">{m.text}</p>
                     <p className="text-[10px] mt-1 opacity-70">{m.timestamp}</p>
                   </div>
@@ -160,7 +170,7 @@ export function ChatMeetup({ onNavigate }: ChatMeetupProps) {
             <div className="p-4 border-t bg-white">
               {attachedImage && (
                 <div className="mb-3 relative inline-block">
-                  <img src={attachedImage} className="h-20 w-20 object-cover rounded-md" />
+                  <img src={attachedImage} className="h-20 w-20 object-cover rounded-md" alt="preview" />
                   <button onClick={() => setAttachedImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><X className="h-3 w-3" /></button>
                 </div>
               )}
@@ -178,7 +188,6 @@ export function ChatMeetup({ onNavigate }: ChatMeetupProps) {
             <CardHeader><CardTitle>UTAR Kampar Safe Meetup Zones</CardTitle></CardHeader>
             <CardContent className="p-0 relative h-[500px] bg-blue-50/50">
                <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                  {/* Reuse your map lines and pins here */}
                   <div className="text-center p-10 border-2 border-dashed border-gray-300 rounded-xl">
                     <MapPin className="h-12 w-12 mx-auto mb-2 opacity-20" />
                     <p>Interactive Campus Map View</p>
