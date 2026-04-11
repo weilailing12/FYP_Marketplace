@@ -81,6 +81,8 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
                     <SelectItem value="accessories">Accessories</SelectItem>
                     <SelectItem value="clothing">Clothing</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="lost">Lost Item</SelectItem>
+                    <SelectItem value="found">Found Item</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

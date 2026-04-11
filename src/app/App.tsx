@@ -8,8 +8,10 @@ import { ChatMeetup } from "./components/ChatMeetup";
 import { Dashboard } from "./components/Dashboard";
 import { Profile } from "./components/Profile";
 import { ClubMerchPage } from "./components/ClubMerchPage";
+import { LostAndFoundPage } from "./components/LostAndFoundPage";
+import { WishlistPage } from "./components/WishList";
 
-type Page = "login" | "register" |"marketplace" | "product" | "create" | "chat" | "dashboard" | "profile" | "clubmerch";
+type Page = "login" | "register" | "marketplace" | "product" | "create" | "chat" | "dashboard" | "profile" | "clubmerch" | "lostfound" | "wishlist";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("login");
@@ -52,6 +54,10 @@ export default function App() {
       return <Profile onNavigate={handleNavigate} />;
     case "clubmerch":
       return <ClubMerchPage onNavigate={handleNavigate} />;
+    case "lostfound":
+      return <LostAndFoundPage onNavigate={handleNavigate} />;
+    case "wishlist":
+      return <WishlistPage onNavigate={handleNavigate} />;
     default:
       return <MarketplaceFeed onNavigate={handleNavigate} />;
   }
