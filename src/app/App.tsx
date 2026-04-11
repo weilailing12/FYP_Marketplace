@@ -18,6 +18,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("login");
   const [selectedProductId, setSelectedProductId] = useState<string | undefined>();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleNavigate = (page: string, productId?: string) => {
     setCurrentPage(page as Page);
@@ -67,8 +68,13 @@ export default function App() {
 
   return (
     <div className="flex">
-      <Sidebar onNavigate={handleNavigate} currentPage={currentPage} />
-      <div className="ml-64 flex-1">
+      <Sidebar
+        onNavigate={handleNavigate}
+        currentPage={currentPage}
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+      />
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
         {renderContent()}
       </div>
     </div>
