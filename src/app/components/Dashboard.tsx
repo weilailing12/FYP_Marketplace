@@ -1,16 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Navbar } from "./Navbar";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent } from "./ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Edit, Trash2, ShieldCheck, Star, X, CheckCircle2, BarChart3, TrendingUp, Eye, MousePointer, ShoppingCart } from "lucide-react";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line } from "recharts";
+import { Edit, Trash2, ShieldCheck, Star, X, CheckCircle2 } from "lucide-react";
 
 interface DashboardProps {
   onNavigate: (page: string) => void;
@@ -94,26 +92,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState("");
 
-  // --- ANALYTICS STATES ---
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
-
-  // Fetch analytics on mount
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      setLoadingAnalytics(true);
-      try {
-        const response = await fetch('http://localhost:5000/analytics/dashboard/1'); // Assume user_id 1
-        const data = await response.json();
-        setAnalytics(data);
-      } catch (error) {
-        console.error('Failed to fetch analytics:', error);
-      } finally {
-        setLoadingAnalytics(false);
-      }
-    };
-    fetchAnalytics();
-  }, []);
+  const handleOpenRating = (purchase: any) => {
     setSelectedPurchase(purchase);
     setShowRatingModal(true);
     setRating(0);
@@ -214,11 +193,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         </Card>
 
         <Tabs defaultValue="listings" className="space-y-4">
-          <TabsList className="grid w-full max-w-lg grid-cols-4">
+          <TabsList className="grid w-full max-w-md grid-cols-3">
             <TabsTrigger value="listings">Active Listings</TabsTrigger>
             <TabsTrigger value="chats">Pending Chats</TabsTrigger>
             <TabsTrigger value="purchases">Past Purchases</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
           {/* ... (Active Listings & Chats Tabs stay the same) ... */}
@@ -264,102 +242,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             ))}
           </TabsContent>
         </Tabs>
-
-        {/* Analytics Tab */}
-        <TabsContent value="analytics" className="space-y-6">
-          {loadingAnalytics ? (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <p>Loading analytics...</p>
-              </CardContent>
-            </Card>
-          ) : analytics ? (
-            <>
-              {/* Product Analytics */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Listing Performance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {Object.entries(analytics.product_analytics || {}).map(([id, data]: [string, any]) => (
-                      <div key={id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <h3 className="font-semibold">{data.title}</h3>
-                          <div className="flex gap-4 mt-2 text-sm text-gray-600">
-                            <span className="flex items-center gap-1">
-                              <Eye className="h-4 w-4" />
-                              {data.views} views
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <MousePointer className="h-4 w-4" />
-                              {data.clicks} clicks
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <ShoppingCart className="h-4 w-4" />
-                              {data.sales} sales
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Monthly Sales Chart (for clubs) */}
-              {analytics.monthly_sales && analytics.monthly_sales.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5" />
-                      Monthly Sales
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ChartContainer config={{ sales: { label: "Sales", color: "#2563eb" } }} className="h-64">
-                      <BarChart data={analytics.monthly_sales}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="sales" fill="#2563eb" />
-                      </BarChart>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Top Selling Items */}
-              {analytics.top_items && analytics.top_items.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Top Selling Items</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {analytics.top_items.map((item: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <span>{item.title}</span>
-                          <Badge variant="secondary">{item.sales} sales</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </>
-          ) : (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <p>No analytics data available</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
       </div>
     </div>
   );
