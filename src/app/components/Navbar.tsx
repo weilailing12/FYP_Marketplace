@@ -53,6 +53,9 @@ export function Navbar({ onNavigate, currentPage }: NavbarProps) {
             <Button onClick={() => onNavigate?.('lostfound')} variant="ghost">
               Lost & Found
             </Button>
+            <Button onClick={() => onNavigate?.('bulletin')} variant="ghost">
+              Bulletin Board
+            </Button>
             <Button
               onClick={() => onNavigate?.('create')}
               className="bg-blue-600 hover:bg-blue-700"

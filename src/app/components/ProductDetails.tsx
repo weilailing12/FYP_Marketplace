@@ -3,7 +3,9 @@ import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Star, ShieldCheck, MessageCircle, Heart } from "lucide-react";
+import { Input } from "./ui/input";
+import { Star, ShieldCheck, MessageCircle, Heart, Tag } from "lucide-react";
+import { useState } from "react";
 
 interface Product {
   id: string;
@@ -44,6 +46,32 @@ interface ProductDetailsProps {
 
 export function ProductDetails({ onNavigate, productId }: ProductDetailsProps) {
   const product = mockProducts.find(p => p.id === productId);
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<any>(null);
+  const [promoError, setPromoError] = useState("");
+
+  const discountedPrice = appliedPromo ? product.price * (1 - appliedPromo.discount_percent / 100) : product.price;
+
+  const applyPromoCode = async () => {
+    if (!promoCode.trim()) return;
+    try {
+      const response = await fetch('http://localhost:5000/promo/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode })
+      });
+      const data = await response.json();
+      if (data.valid) {
+        setAppliedPromo(data);
+        setPromoError("");
+      } else {
+        setPromoError(data.error);
+        setAppliedPromo(null);
+      }
+    } catch (error) {
+      setPromoError("Failed to validate promo code");
+    }
+  };
 
   if (!product) {
     return (
@@ -98,7 +126,21 @@ export function ProductDetails({ onNavigate, productId }: ProductDetailsProps) {
           <div className="space-y-6">
             <div>
               <h1 className="text-4xl font-bold mb-2">{product.title}</h1>
-              <p className="text-3xl font-bold text-blue-600">RM {product.price}</p>
+              <div className="flex items-center gap-2">
+                <p className={`text-3xl font-bold ${appliedPromo ? 'text-gray-500 line-through' : 'text-blue-600'}`}>
+                  RM {product.price}
+                </p>
+                {appliedPromo && (
+                  <p className="text-3xl font-bold text-green-600">
+                    RM {discountedPrice.toFixed(2)}
+                  </p>
+                )}
+              </div>
+              {appliedPromo && (
+                <p className="text-sm text-green-600 mt-1">
+                  {appliedPromo.discount_percent}% discount applied
+                </p>
+              )}
             </div>
 
             <div className="border-t pt-4">
@@ -109,6 +151,29 @@ export function ProductDetails({ onNavigate, productId }: ProductDetailsProps) {
                 Meetups are available at campus safe zones.
               </p>
             </div>
+
+            {/* Promo Code Section */}
+            {product.productType === 'clubmerch' && (
+              <div className="border-t pt-4">
+                <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
+                  <Tag className="h-5 w-5" />
+                  Promo Code
+                </h2>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter promo code"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    className="flex-1"
+                  />
+                  <Button onClick={applyPromoCode} variant="outline">
+                    Apply
+                  </Button>
+                </div>
+                {promoError && <p className="text-red-500 text-sm mt-1">{promoError}</p>}
+                {appliedPromo && <p className="text-green-500 text-sm mt-1">Promo code applied successfully!</p>}
+              </div>
+            )}
 
             {/* Seller Info Card */}
             <Card>
