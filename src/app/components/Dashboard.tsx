@@ -1,4 +1,3 @@
-import { Navbar } from "./Navbar";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -83,8 +82,6 @@ const mockPurchases = [
 export function Dashboard({ onNavigate }: DashboardProps) {
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar onNavigate={onNavigate} />
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Profile Header */}
         <Card className="mb-6">

@@ -1,4 +1,3 @@
-import { Navbar } from "./Navbar";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -47,7 +46,6 @@ export function WishlistPage({ onNavigate }: WishlistPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar onNavigate={onNavigate} />
       <div className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">My Wishlist</h1>
         

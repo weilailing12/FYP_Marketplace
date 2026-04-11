@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Navbar } from "./Navbar";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -37,8 +36,6 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar onNavigate={onNavigate} />
-
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card>
           <CardHeader>

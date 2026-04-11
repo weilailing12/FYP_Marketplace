@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Navbar } from "./Navbar";
 import { Card, CardContent } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Label } from "./ui/label";
@@ -234,8 +233,6 @@ export function MarketplaceFeed({ onNavigate }: MarketplaceFeedProps) {
 
   return (
     <div className="marketplace-container">
-      <Navbar onNavigate={onNavigate} currentPage="marketplace" />
-
       <div className="marketplace-filters">
         <div className="filters-wrapper">
           <div className="flex items-center gap-6 flex-wrap">

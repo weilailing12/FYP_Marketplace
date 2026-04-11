@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import { Navbar } from "./Navbar";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -73,8 +72,6 @@ export function ChatMeetup({ onNavigate }: ChatMeetupProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 relative">
-      <Navbar onNavigate={onNavigate} />
-
       {/* --- MEETUP RESERVATION MODAL --- */}
       {showMeetupModal && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">

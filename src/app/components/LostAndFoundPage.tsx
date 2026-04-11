@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Navbar } from "./Navbar";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -47,8 +46,6 @@ export function LostAndFoundPage({ onNavigate }: LostAndFoundPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar onNavigate={onNavigate} />
-      
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>

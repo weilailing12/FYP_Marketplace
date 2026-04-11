@@ -1,4 +1,3 @@
-import { Navbar } from "./Navbar";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -48,7 +47,6 @@ export function ProductDetails({ onNavigate, productId }: ProductDetailsProps) {
   if (!product) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar onNavigate={onNavigate} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
           <p className="mb-4">Product not found</p>
           <Button onClick={() => onNavigate('marketplace')}>Back to Marketplace</Button>
@@ -67,8 +65,6 @@ export function ProductDetails({ onNavigate, productId }: ProductDetailsProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar onNavigate={onNavigate} />
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Button
           variant="ghost"
