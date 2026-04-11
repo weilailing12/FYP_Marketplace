@@ -5,7 +5,7 @@ from PIL import Image
 import re
 import io
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Users\User\AppData\Local\Programs\Tesseract-OCR'
+pytesseract.pytesseract.tesseract_cmd = r'C:\Users\User\AppData\Local\Programs\Tesseract-OCR\tesseract.exe' # Update this path to where Tesseract is installed on your machine
 app = Flask(__name__)
 # This allows your React app (running on a different port) to talk to Flask
 CORS(app) 

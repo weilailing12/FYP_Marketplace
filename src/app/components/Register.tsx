@@ -12,7 +12,9 @@ export const Register = ({ onNavigate }: RegisterProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: "", studentId: "" });
+  
+  // 1. ADDED 'email' TO STATE
+  const [formData, setFormData] = useState({ name: "", studentId: "", email: "" });
 
   const apiBase = useMemo(() => "http://127.0.0.1:5000", []);
 
@@ -42,11 +44,49 @@ export const Register = ({ onNavigate }: RegisterProps) => {
       }
 
       setFormData({
+        ...formData, // Keep the email if they already typed it
         name: (data && "name" in data && data.name ? data.name : "") ?? "",
         studentId: (data && "studentId" in data && data.studentId ? data.studentId : "") ?? ""
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Network error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // 2. THE MISSING FUNCTION
+  const handleFinishRegistration = async () => {
+    if (!formData.email) {
+      setError("Please enter your email address to verify your account.");
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${apiBase}/send-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          name: formData.name,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("Verification email sent! Please check your inbox.");
+        onNavigate("login");
+      } else {
+        setError(data.error || "Failed to send email.");
+      }
+    } catch (e) {
+      setError("Network error while sending email.");
     } finally {
       setIsProcessing(false);
     }
@@ -66,37 +106,52 @@ export const Register = ({ onNavigate }: RegisterProps) => {
             className="upload-input"
           />
 
-          {isProcessing && <p className="processing-message">Processing OCR...</p>}
-          {error && <p className="error-message">{error}</p>}
+          {isProcessing && <p className="processing-message">Processing...</p>}
+          {error && <p className="error-message" style={{ color: "red" }}>{error}</p>}
 
           {imagePreview && (
             <div className="image-preview">
-              <img src={imagePreview} alt="Preview" />
+              <img src={imagePreview} alt="Preview" style={{ maxWidth: "100%", marginTop: "10px" }} />
             </div>
           )}
         </div>
 
-        <div className="form-section">
+        <div className="form-section" style={{ marginTop: "20px" }}>
+          
+          {/* LOCKED INPUTS FOR OCR */}
           <label>Full Name</label>
           <input
             type="text"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Auto-filled from card (edit if needed)"
+            readOnly
+            style={{ backgroundColor: "#f3f4f6", cursor: "not-allowed", display: "block", width: "100%", marginBottom: "10px" }}
+            placeholder="Please upload your ID card to auto-fill"
           />
 
           <label>Student ID</label>
           <input
             type="text"
             value={formData.studentId}
-            onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
-            placeholder="Auto-filled from card (edit if needed)"
+            readOnly
+            style={{ backgroundColor: "#f3f4f6", cursor: "not-allowed", display: "block", width: "100%", marginBottom: "10px" }}
+            placeholder="Please upload your ID card to auto-fill"
+          />
+
+          {/* NEW EMAIL INPUT */}
+          <label>Student Email</label>
+          <input
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            style={{ display: "block", width: "100%", marginBottom: "20px" }}
+            placeholder="Enter your email to receive verification link"
           />
 
           <button
-            onClick={() => alert("Proceeding to Email Verification...")}
+            onClick={handleFinishRegistration}
             className="register-button"
-            disabled={isProcessing}
+            disabled={isProcessing || !formData.studentId} // Forces them to upload ID first!
+            style={{ width: "100%", padding: "10px", backgroundColor: (!formData.studentId ? "#ccc" : "#007bff"), color: "white" }}
           >
             Finish Registration
           </button>
@@ -104,7 +159,7 @@ export const Register = ({ onNavigate }: RegisterProps) => {
           <button
             onClick={() => onNavigate("login")}
             className="link-button"
-            style={{ display: "block", marginTop: "16px", width: "100%", textAlign: "center" }}
+            style={{ display: "block", marginTop: "16px", width: "100%", textAlign: "center", background: "none", border: "none", color: "#007bff", cursor: "pointer" }}
             disabled={isProcessing}
           >
             Back to Login
