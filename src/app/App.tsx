@@ -9,8 +9,7 @@ import { Dashboard } from "./components/Dashboard";
 import { Profile } from "./components/Profile";
 import { ClubMerchPage } from "./components/ClubMerchPage";
 import { LostAndFoundPage } from "./components/LostAndFoundPage";
-import { WishlistPage } from "./components/WishList";
-import { Navbar } from "./components/Navbar";
+import { WishlistPage } from "./components/WishList"; // Make sure your file is named WishList.tsx!
 import { Sidebar } from "./components/Sidebar";
 
 type Page = "login" | "register" | "marketplace" | "product" | "create" | "chat" | "dashboard" | "profile" | "clubmerch" | "lostfound" | "wishlist";
@@ -37,49 +36,39 @@ export default function App() {
     return <LoginPage onLogin={handleLogin} onNavigate={handleNavigate}/>;
   }
 
-  // 4. Added "register" to the logic
   if (!isLoggedIn && currentPage === "register") {
     return <Register onNavigate={handleNavigate} />;
   }
 
   const renderContent = () => {
     switch (currentPage) {
-      case "marketplace":
-        return <MarketplaceFeed onNavigate={handleNavigate} />;
-      case "product":
-        return <ProductDetails onNavigate={handleNavigate} productId={selectedProductId} />;
-      case "create":
-        return <CreateListing onNavigate={handleNavigate} />;
-      case "chat":
-        return <ChatMeetup onNavigate={handleNavigate} />;
-      case "dashboard":
-        return <Dashboard onNavigate={handleNavigate} />;
-      case "profile":
-        return <Profile onNavigate={handleNavigate} />;
-      case "clubmerch":
-        return <ClubMerchPage onNavigate={handleNavigate} />;
-      case "lostfound":
-        return <LostAndFoundPage onNavigate={handleNavigate} />;
-      case "wishlist":
-        return <WishlistPage onNavigate={handleNavigate} />;
-      default:
-        return <MarketplaceFeed onNavigate={handleNavigate} />;
+      case "marketplace": return <MarketplaceFeed onNavigate={handleNavigate} />;
+      case "product": return <ProductDetails onNavigate={handleNavigate} productId={selectedProductId} />;
+      case "create": return <CreateListing onNavigate={handleNavigate} />;
+      case "chat": return <ChatMeetup onNavigate={handleNavigate} />;
+      case "dashboard": return <Dashboard onNavigate={handleNavigate} />;
+      case "profile": return <Profile onNavigate={handleNavigate} />;
+      case "clubmerch": return <ClubMerchPage onNavigate={handleNavigate} />;
+      case "lostfound": return <LostAndFoundPage onNavigate={handleNavigate} />;
+      case "wishlist": return <WishlistPage onNavigate={handleNavigate} />;
+      default: return <MarketplaceFeed onNavigate={handleNavigate} />;
     }
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="relative min-h-screen bg-gray-50">
+      {/* 1. Sidebar is floating on top */}
       <Sidebar
         onNavigate={handleNavigate}
         currentPage={currentPage}
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
       />
-      <div className={`flex-1 transition-all duration-300 ease-in-out ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-0'}`}>
-        <Navbar onNavigate={handleNavigate} currentPage={currentPage} />
-        <main className="pt-20">
-          {renderContent()}
-        </main>
+      
+      {/* 2. Page content shifts to the right when Sidebar is open */}
+      <div className={`transition-all duration-300 ease-in-out ${sidebarOpen ? 'lg:ml-64' : 'ml-0'}`}>
+        {/* We removed the central Navbar here so the pages can render their own! */}
+        {renderContent()}
       </div>
     </div>
   );

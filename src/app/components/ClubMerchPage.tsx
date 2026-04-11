@@ -129,7 +129,7 @@ export function ClubMerchPage({ onNavigate }: ClubMerchPageProps) {
   const [selectedClub, setSelectedClub] = useState("all");
 
   // Get unique clubs
-  const clubs = Array.from(new Set(mockProducts.map(p => p.clubName).filter(Boolean)));
+  const clubs = Array.from(new Set(mockProducts.map(p => p.clubName).filter(Boolean))) as string[];
 
   // Filter products based on current filters
   const filteredProducts = mockProducts.filter((product) => {
