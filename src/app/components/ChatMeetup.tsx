@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Label } from "./ui/label";
 import { Send, MapPin, Navigation, Paperclip, X, Calendar, Clock } from "lucide-react";
+import { Badge } from "./ui/badge";
 
 interface Message {
   id: string;
