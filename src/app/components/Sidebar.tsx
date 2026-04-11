@@ -24,7 +24,7 @@ export function Sidebar({ onNavigate, currentPage, isOpen, onToggle }: SidebarPr
         onClick={onToggle}
         variant="ghost"
         size="icon"
-        className="fixed top-4 left-4 z-50 bg-white shadow-md hover:bg-gray-50"
+        className="fixed top-4 left-4 z-50 h-12 w-12 rounded-full border border-gray-200 bg-white shadow-lg text-gray-700 hover:bg-gray-100"
       >
         {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
