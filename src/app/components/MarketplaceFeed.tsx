@@ -233,6 +233,19 @@ export function MarketplaceFeed({ onNavigate }: MarketplaceFeedProps) {
 
   return (
     <div className="marketplace-container">
+      {/* Floating decorative shapes */}
+      <div className="shape-1"></div>
+      <div className="shape-2"></div>
+      <div className="shape-3"></div>
+
+      {/* Hero Section */}
+      <div className="marketplace-hero">
+        <div className="hero-content">
+          <h1 className="hero-title">Welcome to CampusTrade</h1>
+          <p className="hero-subtitle">Discover amazing products from fellow students and clubs</p>
+        </div>
+      </div>
+
       <div className="marketplace-filters">
         <div className="filters-wrapper">
           <div className="flex items-center gap-6 flex-wrap">
