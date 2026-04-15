@@ -5,7 +5,9 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Upload, Loader2, CheckCircle2 } from "lucide-react";
+import { Progress } from "./ui/progress";
+import { Upload, Loader2, CheckCircle2, Plus, X, Image as ImageIcon, Sparkles, Package, Tag, DollarSign, FileText } from "lucide-react";
+import { Alert, AlertDescription } from "./ui/alert";
 
 interface CreateListingProps {
   onNavigate: (page: string) => void;
@@ -16,14 +18,35 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
   const [imageUploaded, setImageUploaded] = useState(false);
   const [productType, setProductType] = useState<"secondhand" | "clubmerch">("secondhand");
   const [selectedClub, setSelectedClub] = useState<string>("");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState({
+    title: "",
+    category: "",
+    price: "",
+    description: ""
+  });
 
   const handleImageUpload = () => {
     setUploading(true);
-    // Simulate AI verification
-    setTimeout(() => {
-      setUploading(false);
-      setImageUploaded(true);
-    }, 2500);
+    setUploadProgress(0);
+
+    // Simulate upload progress
+    const interval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setUploading(false);
+          setImageUploaded(true);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 200);
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -34,165 +57,278 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
     }, 500);
   };
 
+  const steps = [
+    { id: 1, title: "Basic Info", icon: Package, completed: formData.title && formData.category },
+    { id: 2, title: "Details", icon: Tag, completed: formData.price && formData.description },
+    { id: 3, title: "Images", icon: ImageIcon, completed: imageUploaded },
+    { id: 4, title: "Publish", icon: Sparkles, completed: false }
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card>
+    <div className="create-listing-container">
+      {/* Floating decorative shapes */}
+      <div className="listing-shape-1"></div>
+      <div className="listing-shape-2"></div>
+      <div className="listing-shape-3"></div>
+
+      {/* Hero Section */}
+      <div className="listing-hero">
+        <div className="hero-content">
+          <h1 className="hero-title">Create New Listing</h1>
+          <p className="hero-subtitle">Share your items with the campus community</p>
+        </div>
+      </div>
+
+      {/* Progress Steps */}
+      <div className="listing-progress">
+        <div className="progress-container">
+          {steps.map((step, index) => (
+            <div key={step.id} className="step-item">
+              <div className={`step-circle ${currentStep >= step.id ? 'active' : ''} ${step.completed ? 'completed' : ''}`}>
+                <step.icon className="h-5 w-5" />
+              </div>
+              <span className={`step-title ${currentStep >= step.id ? 'active' : ''}`}>
+                {step.title}
+              </span>
+              {index < steps.length - 1 && (
+                <div className={`step-line ${currentStep > step.id ? 'completed' : ''}`}></div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="listing-content">
+        <Card className="listing-card">
           <CardHeader>
-            <CardTitle className="text-3xl">Create New Listing</CardTitle>
+            <CardTitle className="card-title">
+              <Package className="h-6 w-6 mr-3" />
+              Listing Details
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="title">Listing Title</Label>
-                <Input
-                  id="title"
-                  placeholder="e.g., MacBook Pro 2020 - Excellent Condition"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="productType">Product Type</Label>
-                <Select value={productType} onValueChange={(value: "secondhand" | "clubmerch") => setProductType(value)}>
-                  <SelectTrigger id="productType">
-                    <SelectValue placeholder="Select product type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="secondhand">Second-hand Item</SelectItem>
-                    <SelectItem value="clubmerch">Club Merchandise</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select required>
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="books">Books & Textbooks</SelectItem>
-                    <SelectItem value="electronics">Electronics</SelectItem>
-                    <SelectItem value="furniture">Furniture</SelectItem>
-                    <SelectItem value="accessories">Accessories</SelectItem>
-                    <SelectItem value="clothing">Clothing</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                    <SelectItem value="lost">Lost Item</SelectItem>
-                    <SelectItem value="found">Found Item</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {productType === "clubmerch" && (
-                <div className="space-y-2">
-                  <Label htmlFor="club">Club</Label>
-                  <Select value={selectedClub} onValueChange={setSelectedClub} required>
-                    <SelectTrigger id="club">
-                      <SelectValue placeholder="Select a club" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BoardGames">BoardGames Club</SelectItem>
-                      <SelectItem value="Yoga">Yoga Club</SelectItem>
-                      <SelectItem value="WorldHistory">WorldHistory Club</SelectItem>
-                      <SelectItem value="Music">Music Club</SelectItem>
-                      <SelectItem value="Photography">Photography Club</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Basic Information Section */}
+              <div className="form-section">
+                <div className="section-header">
+                  <Package className="h-5 w-5 text-blue-600" />
+                  <h3 className="section-title">Basic Information</h3>
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label htmlFor="price">Price (RM)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  required
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="title" className="form-label">
+                      <Tag className="h-4 w-4 inline mr-2" />
+                      Listing Title
+                    </Label>
+                    <Input
+                      id="title"
+                      placeholder="e.g., MacBook Pro 2020 - Excellent Condition"
+                      value={formData.title}
+                      onChange={(e) => handleInputChange("title", e.target.value)}
+                      className="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="productType" className="form-label">
+                      Product Type
+                    </Label>
+                    <Select value={productType} onValueChange={(value: "secondhand" | "clubmerch") => setProductType(value)}>
+                      <SelectTrigger className="form-select">
+                        <SelectValue placeholder="Select product type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="secondhand">Second-hand Item</SelectItem>
+                        <SelectItem value="clubmerch">Club Merchandise</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="category" className="form-label">
+                      Category
+                    </Label>
+                    <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)} required>
+                      <SelectTrigger className="form-select">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="books">📚 Books & Textbooks</SelectItem>
+                        <SelectItem value="electronics">💻 Electronics</SelectItem>
+                        <SelectItem value="furniture">🪑 Furniture</SelectItem>
+                        <SelectItem value="accessories">🎒 Accessories</SelectItem>
+                        <SelectItem value="clothing">👕 Clothing</SelectItem>
+                        <SelectItem value="other">📦 Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {productType === "clubmerch" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="club" className="form-label">
+                        Club
+                      </Label>
+                      <Select value={selectedClub} onValueChange={setSelectedClub} required>
+                        <SelectTrigger className="form-select">
+                          <SelectValue placeholder="Select a club" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="BoardGames">🎲 BoardGames Club</SelectItem>
+                          <SelectItem value="Yoga">🧘 Yoga Club</SelectItem>
+                          <SelectItem value="WorldHistory">📜 WorldHistory Club</SelectItem>
+                          <SelectItem value="Music">🎵 Music Club</SelectItem>
+                          <SelectItem value="Photography">📸 Photography Club</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe your item, its condition, and any other relevant details..."
-                  rows={6}
-                  required
-                />
+              {/* Details Section */}
+              <div className="form-section">
+                <div className="section-header">
+                  <Tag className="h-5 w-5 text-purple-600" />
+                  <h3 className="section-title">Item Details</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="price" className="form-label">
+                      <DollarSign className="h-4 w-4 inline mr-2" />
+                      Price (RM)
+                    </Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) => handleInputChange("price", e.target.value)}
+                      className="form-input"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="form-label">
+                    <FileText className="h-4 w-4 inline mr-2" />
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe your item, its condition, and any other relevant details..."
+                    rows={6}
+                    value={formData.description}
+                    onChange={(e) => handleInputChange("description", e.target.value)}
+                    className="form-textarea"
+                    required
+                  />
+                </div>
               </div>
 
-              {/* Image Upload Zone */}
-              <div className="space-y-2">
-                <Label>Product Images</Label>
+              {/* Image Upload Section */}
+              <div className="form-section">
+                <div className="section-header">
+                  <ImageIcon className="h-5 w-5 text-green-600" />
+                  <h3 className="section-title">Product Images</h3>
+                </div>
+
                 <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                    uploading || imageUploaded
-                      ? "border-blue-400 bg-blue-50"
-                      : "border-gray-300 hover:border-blue-400 cursor-pointer"
-                  }`}
+                  className={`upload-zone ${uploading || imageUploaded ? 'uploaded' : ''}`}
                   onClick={!uploading && !imageUploaded ? handleImageUpload : undefined}
                 >
                   {!uploading && !imageUploaded && (
-                    <div className="space-y-2">
-                      <Upload className="h-12 w-12 mx-auto text-gray-400" />
-                      <div>
-                        <p className="text-lg text-gray-600">
-                          Drag and drop your images here
+                    <div className="upload-content">
+                      <div className="upload-icon">
+                        <Upload className="h-16 w-16 text-blue-500" />
+                      </div>
+                      <div className="upload-text">
+                        <h4 className="upload-title">Upload Product Images</h4>
+                        <p className="upload-subtitle">
+                          Drag and drop your images here or click to browse
                         </p>
-                        <p className="text-sm text-gray-500 mt-1">
-                          or click to browse
+                        <p className="upload-hint">
+                          Supports JPG, PNG up to 10MB each
                         </p>
                       </div>
+                      <Button type="button" className="upload-button">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Choose Files
+                      </Button>
                     </div>
                   )}
 
                   {uploading && (
-                    <div className="space-y-4">
-                      <div className="relative w-full h-48 bg-gray-200 rounded-lg overflow-hidden">
-                        <img
-                          src="https://images.unsplash.com/flagged/photo-1576697010739-6373b63f3204?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsYXB0b3AlMjBjb21wdXRlciUyMGRlc2t8ZW58MXx8fHwxNzcyNzEwNjkxfDA&ixlib=rb-4.1.0&q=80&w=1080"
-                          alt="Uploaded preview"
-                          className="w-full h-full object-cover opacity-50"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-                        </div>
+                    <div className="upload-progress">
+                      <div className="progress-icon">
+                        <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
                       </div>
-                      <p className="text-blue-600 flex items-center justify-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Checking image authenticity with AI...
-                      </p>
+                      <div className="progress-content">
+                        <h4 className="progress-title">Uploading & Verifying</h4>
+                        <Progress value={uploadProgress} className="progress-bar" />
+                        <p className="progress-text">
+                          AI is checking image authenticity... {uploadProgress}%
+                        </p>
+                      </div>
                     </div>
                   )}
 
                   {imageUploaded && (
-                    <div className="space-y-4">
-                      <div className="relative w-full h-48 bg-gray-200 rounded-lg overflow-hidden">
+                    <div className="upload-success">
+                      <div className="success-preview">
                         <img
                           src="https://images.unsplash.com/flagged/photo-1576697010739-6373b63f3204?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsYXB0b3AlMjBjb21wdXRlciUyMGRlc2t8ZW58MXx8fHwxNzcyNzEwNjkxfDA&ixlib=rb-4.1.0&q=80&w=1080"
                           alt="Uploaded preview"
-                          className="w-full h-full object-cover"
+                          className="preview-image"
                         />
+                        <div className="success-overlay">
+                          <CheckCircle2 className="h-8 w-8 text-green-600" />
+                        </div>
                       </div>
-                      <p className="text-green-600 flex items-center justify-center gap-2">
-                        <CheckCircle2 className="h-5 w-5" />
-                        Image verified! Ready to publish
-                      </p>
+                      <div className="success-content">
+                        <h4 className="success-title">Image Verified!</h4>
+                        <p className="success-text">
+                          Your image has been successfully uploaded and verified
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 h-12"
-                disabled={!imageUploaded}
-              >
-                Publish Listing
-              </Button>
+              {/* Publish Section */}
+              <div className="form-section">
+                <Alert className="publish-alert">
+                  <Sparkles className="h-4 w-4" />
+                  <AlertDescription>
+                    Ready to publish? Your listing will be visible to all students on CampusTrade!
+                  </AlertDescription>
+                </Alert>
+
+                <div className="publish-actions">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="cancel-button"
+                    onClick={() => onNavigate('marketplace')}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="publish-button"
+                    disabled={!imageUploaded || !formData.title || !formData.category || !formData.price || !formData.description}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Publish Listing
+                  </Button>
+                </div>
+              </div>
             </form>
           </CardContent>
         </Card>
