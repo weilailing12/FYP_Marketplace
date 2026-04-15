@@ -1,13 +1,15 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Upload, Loader2, CheckCircle2, Camera } from "lucide-react";
+import { Switch } from "./ui/switch";
+import { Separator } from "./ui/separator";
+import { Loader2, CheckCircle2, User, Bell, Shield, Settings, Palette, Moon, Sun } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 
 interface ProfileProps {
   onNavigate: (page: string) => void;
@@ -20,16 +22,23 @@ interface UserProfile {
   bio: string;
   course: string;
   university: string;
-  profileImage: string | null;
+}
+
+interface UserSettings {
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  smsNotifications: boolean;
+  profileVisibility: 'public' | 'friends' | 'private';
+  theme: 'light' | 'dark' | 'system';
+  language: string;
+  twoFactorAuth: boolean;
 }
 
 export function Profile({ onNavigate }: ProfileProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState("profile");
 
   const [profile, setProfile] = useState<UserProfile>({
     name: "John Doe",
@@ -38,45 +47,17 @@ export function Profile({ onNavigate }: ProfileProps) {
     bio: "Engineering student passionate about tech and sustainability.",
     course: "Computer Science",
     university: "University of Malaya",
-    profileImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9maWxlfGVufDB8fHx8fDA&ixlib=rb-4.1.0&q=80&w=400",
   });
 
-  const handleImageClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      setErrors({ image: "Please select a valid image file" });
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors({ image: "Image size must be less than 5MB" });
-      return;
-    }
-
-    setUploading(true);
-    setErrors({});
-
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-      
-      // Simulate AI verification
-      setTimeout(() => {
-        setUploading(false);
-        setProfile({ ...profile, profileImage: e.target?.result as string });
-      }, 2000);
-    };
-    reader.readAsDataURL(file);
-  };
+  const [settings, setSettings] = useState<UserSettings>({
+    emailNotifications: true,
+    pushNotifications: true,
+    smsNotifications: false,
+    profileVisibility: 'public',
+    theme: 'light',
+    language: 'en',
+    twoFactorAuth: false,
+  });
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -114,6 +95,13 @@ export function Profile({ onNavigate }: ProfileProps) {
     }
   };
 
+  const handleSettingsChange = (
+    field: keyof UserSettings,
+    value: any
+  ) => {
+    setSettings({ ...settings, [field]: value });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -131,236 +119,427 @@ export function Profile({ onNavigate }: ProfileProps) {
     }, 1500);
   };
 
-  const getInitials = (name: string): string => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
+  const handleSettingsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    setSaving(true);
+    // Simulate API call
+    setTimeout(() => {
+      setSaving(false);
+      setSaveSuccess(true);
+      // Hide success message after 3 seconds
+      setTimeout(() => setSaveSuccess(false), 3000);
+    }, 1500);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-3xl">Edit Profile</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {saveSuccess && (
-              <Alert className="mb-6 bg-green-50 border-green-200">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">
-                  Profile updated successfully!
-                </AlertDescription>
-              </Alert>
-            )}
+    <div className="profile-container">
+      {/* Floating decorative shapes */}
+      <div className="profile-shape-1"></div>
+      <div className="profile-shape-2"></div>
+      <div className="profile-shape-3"></div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Profile Picture Section */}
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">Profile Picture</Label>
-                <div className="flex items-center gap-6">
-                  {/* Avatar Display */}
-                  <div className="relative">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage src={imagePreview || profile.profileImage || ""} />
-                      <AvatarFallback className="bg-blue-100 text-blue-600 text-lg">
-                        {getInitials(profile.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <button
-                      type="button"
-                      onClick={handleImageClick}
-                      className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-md transition-colors"
-                      disabled={uploading}
-                    >
-                      <Camera className="h-4 w-4" />
-                    </button>
-                  </div>
+      {/* Hero Section */}
+      <div className="profile-hero">
+        <div className="hero-content">
+          <h1 className="hero-title">My Profile</h1>
+          <p className="hero-subtitle">Manage your account settings and preferences</p>
+        </div>
+      </div>
 
-                  {/* Upload Info */}
-                  <div className="flex-1">
-                    {uploading ? (
-                      <div className="flex items-center gap-2 text-blue-600">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Verifying image...</span>
-                      </div>
-                    ) : imagePreview ? (
-                      <div className="flex items-center gap-2 text-green-600">
-                        <CheckCircle2 className="h-5 w-5" />
-                        <span>Image updated</span>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-600">
-                        Click the camera icon to upload a new profile picture
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">
-                      Recommended: Square image, at least 400x400px, under 5MB
-                    </p>
-                  </div>
-                </div>
+      <div className="profile-content">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="profile-tabs">
+            <TabsTrigger value="profile" className="tab-trigger">
+              <User className="h-4 w-4 mr-2" />
+              Profile
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="tab-trigger">
+              <Bell className="h-4 w-4 mr-2" />
+              Notifications
+            </TabsTrigger>
+            <TabsTrigger value="privacy" className="tab-trigger">
+              <Shield className="h-4 w-4 mr-2" />
+              Privacy
+            </TabsTrigger>
+            <TabsTrigger value="preferences" className="tab-trigger">
+              <Settings className="h-4 w-4 mr-2" />
+              Preferences
+            </TabsTrigger>
+          </TabsList>
 
-                {errors.image && (
-                  <p className="text-sm text-red-600">{errors.image}</p>
+          <TabsContent value="profile" className="tab-content">
+            <Card className="profile-card">
+              <CardHeader>
+                <CardTitle className="card-title">Personal Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {saveSuccess && (
+                  <Alert className="mb-6 bg-green-50 border-green-200">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">
+                      Profile updated successfully!
+                    </AlertDescription>
+                  </Alert>
                 )}
 
-                {/* Hidden File Input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  disabled={uploading}
-                />
-              </div>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Name Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="name" className="form-label">
+                        Full Name
+                      </Label>
+                      <Input
+                        id="name"
+                        value={profile.name}
+                        onChange={(e) => handleInputChange("name", e.target.value)}
+                        placeholder="Enter your full name"
+                        className={`form-input ${errors.name ? "border-red-500" : ""}`}
+                      />
+                      {errors.name && (
+                        <p className="text-sm text-red-600">{errors.name}</p>
+                      )}
+                    </div>
 
-              <div className="border-t pt-6">
-                {/* Name Field */}
-                <div className="space-y-2 mb-6">
-                  <Label htmlFor="name" className="font-semibold">
-                    Full Name
-                  </Label>
-                  <Input
-                    id="name"
-                    value={profile.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    placeholder="Enter your full name"
-                    className={errors.name ? "border-red-500" : ""}
-                  />
-                  {errors.name && (
-                    <p className="text-sm text-red-600">{errors.name}</p>
-                  )}
-                </div>
+                    {/* Email Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="form-label">
+                        Email Address
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={profile.email}
+                        onChange={(e) => handleInputChange("email", e.target.value)}
+                        placeholder="your.email@university.edu"
+                        className={`form-input ${errors.email ? "border-red-500" : ""}`}
+                      />
+                      {errors.email && (
+                        <p className="text-sm text-red-600">{errors.email}</p>
+                      )}
+                    </div>
 
-                {/* Email Field */}
-                <div className="space-y-2 mb-6">
-                  <Label htmlFor="email" className="font-semibold">
-                    Email Address
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profile.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    placeholder="your.email@university.edu"
-                    className={errors.email ? "border-red-500" : ""}
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-red-600">{errors.email}</p>
-                  )}
-                </div>
+                    {/* Phone Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="phone" className="form-label">
+                        Phone Number
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={profile.phone}
+                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                        placeholder="+60123456789"
+                        className={`form-input ${errors.phone ? "border-red-500" : ""}`}
+                      />
+                      {errors.phone && (
+                        <p className="text-sm text-red-600">{errors.phone}</p>
+                      )}
+                    </div>
 
-                {/* Phone Field */}
-                <div className="space-y-2 mb-6">
-                  <Label htmlFor="phone" className="font-semibold">
-                    Phone Number
-                  </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={profile.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    placeholder="+60123456789"
-                    className={errors.phone ? "border-red-500" : ""}
-                  />
-                  {errors.phone && (
-                    <p className="text-sm text-red-600">{errors.phone}</p>
-                  )}
-                </div>
+                    {/* University Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="university" className="form-label">
+                        University
+                      </Label>
+                      <Input
+                        id="university"
+                        value={profile.university}
+                        onChange={(e) => handleInputChange("university", e.target.value)}
+                        placeholder="Your university name"
+                        className={`form-input ${errors.university ? "border-red-500" : ""}`}
+                      />
+                      {errors.university && (
+                        <p className="text-sm text-red-600">{errors.university}</p>
+                      )}
+                    </div>
+                  </div>
 
-                {/* University Field */}
-                <div className="space-y-2 mb-6">
-                  <Label htmlFor="university" className="font-semibold">
-                    University
-                  </Label>
-                  <Input
-                    id="university"
-                    value={profile.university}
-                    onChange={(e) => handleInputChange("university", e.target.value)}
-                    placeholder="Your university name"
-                    className={errors.university ? "border-red-500" : ""}
-                  />
-                  {errors.university && (
-                    <p className="text-sm text-red-600">{errors.university}</p>
-                  )}
-                </div>
+                  {/* Course Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor="course" className="form-label">
+                      Course / Major
+                    </Label>
+                    <Select value={profile.course} onValueChange={(value) => handleInputChange("course", value)}>
+                      <SelectTrigger className={`form-select ${errors.course ? "border-red-500" : ""}`}>
+                        <SelectValue placeholder="Select your course" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="computer-science">Computer Science</SelectItem>
+                        <SelectItem value="engineering">Engineering</SelectItem>
+                        <SelectItem value="business">Business</SelectItem>
+                        <SelectItem value="medicine">Medicine</SelectItem>
+                        <SelectItem value="law">Law</SelectItem>
+                        <SelectItem value="arts">Arts</SelectItem>
+                        <SelectItem value="science">Science</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.course && (
+                      <p className="text-sm text-red-600">{errors.course}</p>
+                    )}
+                  </div>
 
-                {/* Course Field */}
-                <div className="space-y-2 mb-6">
-                  <Label htmlFor="course" className="font-semibold">
-                    Course / Major
-                  </Label>
-                  <Select value={profile.course}  onValueChange={(value) => handleInputChange("course", value)}>
-                    <SelectTrigger id="course" className={errors.course ? "border-red-500" : ""}>
-                      <SelectValue placeholder="Select your course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="computer-science">Computer Science</SelectItem>
-                      <SelectItem value="engineering">Engineering</SelectItem>
-                      <SelectItem value="business">Business</SelectItem>
-                      <SelectItem value="medicine">Medicine</SelectItem>
-                      <SelectItem value="law">Law</SelectItem>
-                      <SelectItem value="arts">Arts</SelectItem>
-                      <SelectItem value="science">Science</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.course && (
-                    <p className="text-sm text-red-600">{errors.course}</p>
-                  )}
-                </div>
+                  {/* Bio Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor="bio" className="form-label">
+                      Bio
+                    </Label>
+                    <Textarea
+                      id="bio"
+                      value={profile.bio}
+                      onChange={(e) => handleInputChange("bio", e.target.value)}
+                      placeholder="Tell other students about yourself..."
+                      rows={4}
+                      maxLength={500}
+                      className="form-textarea"
+                    />
+                    <p className="text-xs text-gray-500">
+                      {profile.bio.length}/500 characters
+                    </p>
+                  </div>
 
-                {/* Bio Field */}
-                <div className="space-y-2 mb-6">
-                  <Label htmlFor="bio" className="font-semibold">
-                    Bio
-                  </Label>
-                  <Textarea
-                    id="bio"
-                    value={profile.bio}
-                    onChange={(e) => handleInputChange("bio", e.target.value)}
-                    placeholder="Tell other students about yourself..."
-                    rows={4}
-                    maxLength={500}
-                  />
-                  <p className="text-xs text-gray-500">
-                    {profile.bio.length}/500 characters
-                  </p>
-                </div>
-              </div>
+                  {/* Action Buttons */}
+                  <div className="flex gap-4 pt-6">
+                    <Button
+                      type="submit"
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                      disabled={saving}
+                    >
+                      {saving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving Changes...
+                        </>
+                      ) : (
+                        "Save Changes"
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => onNavigate("marketplace")}
+                      disabled={saving}
+                    >
+                      Back to Marketplace
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-              {/* Action Buttons */}
-              <div className="flex gap-4 pt-6">
-                <Button
-                  type="submit"
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  disabled={saving || uploading}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving Changes...
-                    </>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => onNavigate("marketplace")}
-                  disabled={saving}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+          <TabsContent value="notifications" className="tab-content">
+            <Card className="profile-card">
+              <CardHeader>
+                <CardTitle className="card-title">Notification Preferences</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {saveSuccess && (
+                  <Alert className="mb-6 bg-green-50 border-green-200">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">
+                      Settings updated successfully!
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <form onSubmit={handleSettingsSubmit} className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 rounded-lg border bg-white/50">
+                      <div>
+                        <Label className="text-base font-medium">Email Notifications</Label>
+                        <p className="text-sm text-gray-600">Receive notifications via email</p>
+                      </div>
+                      <Switch
+                        checked={settings.emailNotifications}
+                        onCheckedChange={(checked) => handleSettingsChange("emailNotifications", checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 rounded-lg border bg-white/50">
+                      <div>
+                        <Label className="text-base font-medium">Push Notifications</Label>
+                        <p className="text-sm text-gray-600">Receive push notifications in browser</p>
+                      </div>
+                      <Switch
+                        checked={settings.pushNotifications}
+                        onCheckedChange={(checked) => handleSettingsChange("pushNotifications", checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 rounded-lg border bg-white/50">
+                      <div>
+                        <Label className="text-base font-medium">SMS Notifications</Label>
+                        <p className="text-sm text-gray-600">Receive important updates via SMS</p>
+                      </div>
+                      <Switch
+                        checked={settings.smsNotifications}
+                        onCheckedChange={(checked) => handleSettingsChange("smsNotifications", checked)}
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Preferences"
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="privacy" className="tab-content">
+            <Card className="profile-card">
+              <CardHeader>
+                <CardTitle className="card-title">Privacy Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {saveSuccess && (
+                  <Alert className="mb-6 bg-green-50 border-green-200">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">
+                      Privacy settings updated successfully!
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <form onSubmit={handleSettingsSubmit} className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="form-label">Profile Visibility</Label>
+                      <Select value={settings.profileVisibility} onValueChange={(value: any) => handleSettingsChange("profileVisibility", value)}>
+                        <SelectTrigger className="form-select">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="public">Public - Anyone can see your profile</SelectItem>
+                          <SelectItem value="friends">Friends Only - Only connected users</SelectItem>
+                          <SelectItem value="private">Private - Only you can see your profile</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex items-center justify-between p-4 rounded-lg border bg-white/50">
+                      <div>
+                        <Label className="text-base font-medium">Two-Factor Authentication</Label>
+                        <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
+                      </div>
+                      <Switch
+                        checked={settings.twoFactorAuth}
+                        onCheckedChange={(checked) => handleSettingsChange("twoFactorAuth", checked)}
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Privacy Settings"
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="preferences" className="tab-content">
+            <Card className="profile-card">
+              <CardHeader>
+                <CardTitle className="card-title">App Preferences</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {saveSuccess && (
+                  <Alert className="mb-6 bg-green-50 border-green-200">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">
+                      Preferences updated successfully!
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <form onSubmit={handleSettingsSubmit} className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="form-label">Theme</Label>
+                      <Select value={settings.theme} onValueChange={(value: any) => handleSettingsChange("theme", value)}>
+                        <SelectTrigger className="form-select">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="light">
+                            <div className="flex items-center gap-2">
+                              <Sun className="h-4 w-4" />
+                              Light
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="dark">
+                            <div className="flex items-center gap-2">
+                              <Moon className="h-4 w-4" />
+                              Dark
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="system">System Default</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="form-label">Language</Label>
+                      <Select value={settings.language} onValueChange={(value: any) => handleSettingsChange("language", value)}>
+                        <SelectTrigger className="form-select">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="ms">Bahasa Melayu</SelectItem>
+                          <SelectItem value="zh">中文</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Preferences"
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
