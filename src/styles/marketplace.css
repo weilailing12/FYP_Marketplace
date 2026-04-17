@@ -2163,18 +2163,8 @@
 .publish-actions {
   display: flex;
   gap: 16px;
-  justify-content: flex-end;
-}
-
-.cancel-button {
-  padding: 14px 24px;
-  border-radius: 12px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.cancel-button:hover {
-  background: rgba(0, 0, 0, 0.05);
+  justify-content: center;
+  align-items: center;
 }
 
 .publish-button {
@@ -2185,6 +2175,11 @@
   font-weight: 600;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
 }
 
 .publish-button:hover:not(:disabled) {
@@ -2264,12 +2259,11 @@
   }
 
   .publish-actions {
-    flex-direction: column;
+    flex-direction: row;
   }
 
-  .cancel-button,
   .publish-button {
-    width: 100%;
+    width: auto;
   }
 }
 

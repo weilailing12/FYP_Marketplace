@@ -5,8 +5,7 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Progress } from "./ui/progress";
-import { Upload, Loader2, CheckCircle2, Plus, X, Image as ImageIcon, Sparkles, Package, Tag, DollarSign, FileText } from "lucide-react";
+import { Upload, CheckCircle2, Plus, Image as ImageIcon, Sparkles, Package, Tag, DollarSign, FileText } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
 
 interface CreateListingProps {
@@ -14,11 +13,9 @@ interface CreateListingProps {
 }
 
 export function CreateListing({ onNavigate }: CreateListingProps) {
-  const [uploading, setUploading] = useState(false);
   const [imageUploaded, setImageUploaded] = useState(false);
   const [productType, setProductType] = useState<"secondhand" | "clubmerch">("secondhand");
   const [selectedClub, setSelectedClub] = useState<string>("");
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     title: "",
@@ -27,22 +24,11 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
     description: ""
   });
 
-  const handleImageUpload = () => {
-    setUploading(true);
-    setUploadProgress(0);
-
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setUploading(false);
-          setImageUploaded(true);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 200);
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setImageUploaded(true);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -66,10 +52,6 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
 
   return (
     <div className="create-listing-container">
-      {/* Floating decorative shapes */}
-      <div className="listing-shape-1"></div>
-      <div className="listing-shape-2"></div>
-      <div className="listing-shape-3"></div>
 
       {/* Hero Section */}
       <div className="listing-hero">
@@ -79,24 +61,7 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
         </div>
       </div>
 
-      {/* Progress Steps */}
-      <div className="listing-progress">
-        <div className="progress-container">
-          {steps.map((step, index) => (
-            <div key={step.id} className="step-item">
-              <div className={`step-circle ${currentStep >= step.id ? 'active' : ''} ${step.completed ? 'completed' : ''}`}>
-                <step.icon className="h-5 w-5" />
-              </div>
-              <span className={`step-title ${currentStep >= step.id ? 'active' : ''}`}>
-                {step.title}
-              </span>
-              {index < steps.length - 1 && (
-                <div className={`step-line ${currentStep > step.id ? 'completed' : ''}`}></div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+
 
       <div className="listing-content">
         <Card className="listing-card">
@@ -238,11 +203,8 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
                   <h3 className="section-title">Product Images</h3>
                 </div>
 
-                <div
-                  className={`upload-zone ${uploading || imageUploaded ? 'uploaded' : ''}`}
-                  onClick={!uploading && !imageUploaded ? handleImageUpload : undefined}
-                >
-                  {!uploading && !imageUploaded && (
+                <div className={`upload-zone ${imageUploaded ? 'uploaded' : ''}`}>
+                  {!imageUploaded && (
                     <div className="upload-content">
                       <div className="upload-icon">
                         <Upload className="h-16 w-16 text-blue-500" />
@@ -250,31 +212,27 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
                       <div className="upload-text">
                         <h4 className="upload-title">Upload Product Images</h4>
                         <p className="upload-subtitle">
-                          Drag and drop your images here or click to browse
+                          Select images from your device
                         </p>
                         <p className="upload-hint">
                           Supports JPG, PNG up to 10MB each
                         </p>
                       </div>
-                      <Button type="button" className="upload-button">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Choose Files
-                      </Button>
-                    </div>
-                  )}
-
-                  {uploading && (
-                    <div className="upload-progress">
-                      <div className="progress-icon">
-                        <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
-                      </div>
-                      <div className="progress-content">
-                        <h4 className="progress-title">Uploading & Verifying</h4>
-                        <Progress value={uploadProgress} className="progress-bar" />
-                        <p className="progress-text">
-                          AI is checking image authenticity... {uploadProgress}%
-                        </p>
-                      </div>
+                      <label>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          style={{ display: 'none' }}
+                        />
+                        <Button type="button" className="upload-button" asChild>
+                          <span>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Choose Files
+                          </span>
+                        </Button>
+                      </label>
                     </div>
                   )}
 
@@ -291,9 +249,9 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
                         </div>
                       </div>
                       <div className="success-content">
-                        <h4 className="success-title">Image Verified!</h4>
+                        <h4 className="success-title">Image Selected!</h4>
                         <p className="success-text">
-                          Your image has been successfully uploaded and verified
+                          Your image has been selected and is ready to upload
                         </p>
                       </div>
                     </div>
@@ -311,14 +269,6 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
                 </Alert>
 
                 <div className="publish-actions">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="cancel-button"
-                    onClick={() => onNavigate('marketplace')}
-                  >
-                    Cancel
-                  </Button>
                   <Button
                     type="submit"
                     className="publish-button"
