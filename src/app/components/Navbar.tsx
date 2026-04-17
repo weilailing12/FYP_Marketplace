@@ -1,4 +1,4 @@
-import { Search, Plus, Heart } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
@@ -31,14 +31,6 @@ export function Navbar({ onNavigate, currentPage }: NavbarProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button
-              onClick={() => onNavigate?.("wishlist")}
-              variant="ghost"
-              size="icon"
-              className={currentPage === "wishlist" ? "text-red-500" : "text-gray-600"}
-            >
-              <Heart className={`h-5 w-5 ${currentPage === "wishlist" ? "fill-current" : ""}`} />
-            </Button>
             <Button
               onClick={() => onNavigate?.("create")}
               className="bg-blue-600 text-white hover:bg-blue-700"

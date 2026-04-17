@@ -3,7 +3,7 @@ import { Card, CardContent } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Label } from "./ui/label";
 import { Badge } from "./ui/badge";
-import { ShieldCheck, Heart } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { Button } from "./ui/button";
 
 interface Product {
@@ -300,17 +300,6 @@ export function MarketplaceFeed({ onNavigate }: MarketplaceFeedProps) {
                 alt={product.title}
                 className="product-image"
               />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute bottom-2 right-2 bg-white/90 hover:bg-white rounded-full text-gray-400 hover:text-red-500 shadow-sm z-10 h-8 w-8"
-                onClick={(e) => {
-                  e.stopPropagation(); // CRITICAL: Stops the card from opening ProductDetails
-                  alert(`${product.title} added to Wishlist!`);
-                }}
-              >
-                <Heart className="h-4 w-4" />
-              </Button>
 
               {product.verified && (
                 <Badge className={`absolute top-3 right-3 ${product.productType === "clubmerch" ? "club-badge" : "verified-badge"}`}>

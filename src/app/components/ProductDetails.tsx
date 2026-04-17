@@ -2,7 +2,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Star, ShieldCheck, MessageCircle, Heart } from "lucide-react";
+import { Star, ShieldCheck, MessageCircle } from "lucide-react";
 
 interface Product {
   id: string;
@@ -152,14 +152,6 @@ export function ProductDetails({ onNavigate, productId }: ProductDetailsProps) {
               >
                 <MessageCircle className="h-5 w-5 mr-2" />
                 Chat with Seller
-              </Button>
-
-              <Button
-                variant="outline"
-                className="h-12 px-6 border-gray-300 hover:text-red-500 hover:border-red-500 transition-colors"
-                onClick={() => alert("Added to Wishlist!")}
-              >
-                <Heart className="h-5 w-5" />
               </Button>
             </div>
           </div>

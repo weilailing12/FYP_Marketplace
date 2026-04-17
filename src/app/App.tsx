@@ -9,11 +9,10 @@ import { Dashboard } from "./components/Dashboard";
 import { Profile } from "./components/Profile";
 import { ClubMerchPage } from "./components/ClubMerchPage";
 import { LostAndFoundPage } from "./components/LostAndFoundPage";
-import { WishlistPage } from "./components/WishList"; // Make sure your file is named WishList.tsx!
 import { Sidebar } from "./components/Sidebar";
 import { Navbar } from "./components/Navbar";
 
-type Page = "login" | "register" | "marketplace" | "product" | "create" | "chat" | "dashboard" | "profile" | "clubmerch" | "lostfound" | "wishlist";
+type Page = "login" | "register" | "marketplace" | "product" | "create" | "chat" | "dashboard" | "profile" | "clubmerch" | "lostfound";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("login");
@@ -51,7 +50,6 @@ export default function App() {
       case "profile": return <Profile onNavigate={handleNavigate} />;
       case "clubmerch": return <ClubMerchPage onNavigate={handleNavigate} />;
       case "lostfound": return <LostAndFoundPage onNavigate={handleNavigate} />;
-      case "wishlist": return <WishlistPage onNavigate={handleNavigate} />;
       default: return <MarketplaceFeed onNavigate={handleNavigate} />;
     }
   };
