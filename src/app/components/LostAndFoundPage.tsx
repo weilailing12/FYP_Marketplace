@@ -55,7 +55,7 @@ export function LostAndFoundPage({ onNavigate }: LostAndFoundPageProps) {
             </h1>
             <p className="text-gray-600">Help your fellow students recover their belongings.</p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700 h-11" onClick={() => onNavigate('create')}>
+          <Button className="bg-blue-600 hover:bg-blue-700 h-11" onClick={() => onNavigate('reportlostfound')}>
             <PlusCircle className="h-4 w-4 mr-2" />
             Report Lost/Found
           </Button>

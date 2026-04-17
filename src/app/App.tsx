@@ -9,10 +9,11 @@ import { Dashboard } from "./components/Dashboard";
 import { Profile } from "./components/Profile";
 import { ClubMerchPage } from "./components/ClubMerchPage";
 import { LostAndFoundPage } from "./components/LostAndFoundPage";
+import { ReportLostFound } from "./components/ReportLostFound";
 import { Sidebar } from "./components/Sidebar";
 import { Navbar } from "./components/Navbar";
 
-type Page = "login" | "register" | "marketplace" | "product" | "create" | "chat" | "dashboard" | "profile" | "clubmerch" | "lostfound";
+type Page = "login" | "register" | "marketplace" | "product" | "create" | "chat" | "dashboard" | "profile" | "clubmerch" | "lostfound" | "reportlostfound";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("login");
@@ -50,6 +51,7 @@ export default function App() {
       case "profile": return <Profile onNavigate={handleNavigate} />;
       case "clubmerch": return <ClubMerchPage onNavigate={handleNavigate} />;
       case "lostfound": return <LostAndFoundPage onNavigate={handleNavigate} />;
+      case "reportlostfound": return <ReportLostFound onNavigate={handleNavigate} />;
       default: return <MarketplaceFeed onNavigate={handleNavigate} />;
     }
   };
