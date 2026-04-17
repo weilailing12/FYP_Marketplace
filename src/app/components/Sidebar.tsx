@@ -13,7 +13,6 @@ export function Sidebar({ onNavigate, currentPage, isOpen, onToggle }: SidebarPr
   const menuItems = [
     { label: "Second Hand Products", page: "marketplace", icon: "🛍️" },
     { label: "Club Merchandise", page: "clubmerch", icon: "👕" },
-    { label: "Services", page: "chat", icon: "💼" },
     { label: "Lost & Found Item", page: "lostfound", icon: "🔍" },
   ];
 
