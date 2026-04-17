@@ -14,8 +14,7 @@ interface CreateListingProps {
 
 export function CreateListing({ onNavigate }: CreateListingProps) {
   const [imageUploaded, setImageUploaded] = useState(false);
-  const [productType, setProductType] = useState<"secondhand" | "clubmerch">("secondhand");
-  const [selectedClub, setSelectedClub] = useState<string>("");
+  const productType = "secondhand" as const;
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     title: "",
@@ -97,18 +96,8 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="productType" className="form-label">
-                      Product Type
-                    </Label>
-                    <Select value={productType} onValueChange={(value: "secondhand" | "clubmerch") => setProductType(value)}>
-                      <SelectTrigger className="form-select">
-                        <SelectValue placeholder="Select product type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="secondhand">Second-hand Item</SelectItem>
-                        <SelectItem value="clubmerch">Club Merchandise</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <span className="text-sm font-medium text-gray-700">Product Type</span>
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-gray-700">Second-hand Item</div>
                   </div>
 
                   <div className="space-y-2">
@@ -130,25 +119,6 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
                     </Select>
                   </div>
 
-                  {productType === "clubmerch" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="club" className="form-label">
-                        Club
-                      </Label>
-                      <Select value={selectedClub} onValueChange={setSelectedClub} required>
-                        <SelectTrigger className="form-select">
-                          <SelectValue placeholder="Select a club" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="BoardGames">🎲 BoardGames Club</SelectItem>
-                          <SelectItem value="Yoga">🧘 Yoga Club</SelectItem>
-                          <SelectItem value="WorldHistory">📜 WorldHistory Club</SelectItem>
-                          <SelectItem value="Music">🎵 Music Club</SelectItem>
-                          <SelectItem value="Photography">📸 Photography Club</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
                 </div>
               </div>
 

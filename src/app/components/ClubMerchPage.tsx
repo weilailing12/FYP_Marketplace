@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Label } from "./ui/label";
@@ -159,9 +160,14 @@ export function ClubMerchPage({ onNavigate }: ClubMerchPageProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Club Merchandise</h1>
-          <p className="text-gray-600">Support your favorite student clubs with exclusive merchandise</p>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Club Merchandise</h1>
+            <p className="text-gray-600">Support your favorite student clubs with exclusive merchandise</p>
+          </div>
+          <Button variant="outline" onClick={() => onNavigate('clubmerchcreate')}>
+            Create Club Merchandise
+          </Button>
         </div>
 
         {/* Filter Bar */}
