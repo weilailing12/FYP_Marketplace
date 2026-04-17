@@ -2,8 +2,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Star, ShieldCheck, MessageCircle, MapPin, Clock, Users } from "lucide-react";
-import { useState } from "react";
+import { Star, ShieldCheck, MessageCircle } from "lucide-react";
 
 interface Product {
   id: string;
@@ -37,61 +36,12 @@ const mockProducts: Product[] = [
   { id: "18", title: "Photography Club Camera Strap", price: 18, image: "https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?q=80&w=1080", verified: true, category: "Accessories", productType: "clubmerch", clubName: "Photography" },
 ];
 
-const meetupZones = [
-  {
-    id: "1",
-    name: "Main Library Entrance",
-    description: "Safe and monitored area with security cameras",
-    crowdLevel: "Medium",
-    operatingHours: "8:00 AM - 10:00 PM",
-    facilities: ["WiFi", "Seating", "Security"],
-    image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=400"
-  },
-  {
-    id: "2",
-    name: "Student Center Plaza",
-    description: "Open public space with good lighting and visibility",
-    crowdLevel: "High",
-    operatingHours: "7:00 AM - 11:00 PM",
-    facilities: ["WiFi", "Food Court", "ATM"],
-    image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?q=80&w=400"
-  },
-  {
-    id: "3",
-    name: "Block A Ground Floor Lobby",
-    description: "Indoor lobby with security guard presence",
-    crowdLevel: "Low",
-    operatingHours: "6:00 AM - 12:00 AM",
-    facilities: ["Elevator", "Restrooms", "Vending Machines"],
-    image: "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=400"
-  },
-  {
-    id: "4",
-    name: "Cafeteria Area",
-    description: "Well-lit dining area with constant staff presence",
-    crowdLevel: "High",
-    operatingHours: "7:00 AM - 9:00 PM",
-    facilities: ["Food", "Seating", "WiFi"],
-    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=400"
-  },
-  {
-    id: "5",
-    name: "Sports Complex Entrance",
-    description: "Monitored entrance to sports facilities",
-    crowdLevel: "Medium",
-    operatingHours: "6:00 AM - 10:00 PM",
-    facilities: ["Parking", "Lockers", "Showers"],
-    image: "https://images.unsplash.com/photo-1574623452334-1e0ac2b3ccb4?q=80&w=400"
-  }
-];
-
 interface ProductDetailsProps {
   onNavigate: (page: string) => void;
   productId?: string;
 }
 
 export function ProductDetails({ onNavigate, productId }: ProductDetailsProps) {
-  const [showChatModal, setShowChatModal] = useState(false);
   const product = mockProducts.find(p => p.id === productId);
 
   if (!product) {
@@ -198,7 +148,7 @@ export function ProductDetails({ onNavigate, productId }: ProductDetailsProps) {
             <div className="flex gap-4">
               <Button
                 className="flex-1 bg-blue-600 hover:bg-blue-700 h-12 text-lg"
-                onClick={() => setShowChatModal(true)}
+                onClick={() => onNavigate('chat')}
               >
                 <MessageCircle className="h-5 w-5 mr-2" />
                 Chat with Seller
@@ -207,112 +157,6 @@ export function ProductDetails({ onNavigate, productId }: ProductDetailsProps) {
           </div>
         </div>
       </div>
-
-      {/* Chat/Meetup Modal */}
-      {showChatModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-2xl font-bold">Contact Seller</h2>
-              <Button
-                variant="ghost"
-                onClick={() => setShowChatModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </Button>
-            </div>
-
-            <div className="flex h-[600px]">
-              {/* Chat Zone */}
-              <div className="flex-1 border-r p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5" />
-                  Chat with Seller
-                </h3>
-                <div className="bg-gray-50 rounded-lg p-4 h-[500px] flex flex-col">
-                  <div className="flex-1 space-y-4 overflow-y-auto">
-                    <div className="flex justify-start">
-                      <div className="bg-white rounded-lg p-3 max-w-[70%] shadow-sm">
-                        <p className="text-sm">Hi! I'm interested in your {product?.title}. Is it still available?</p>
-                        <span className="text-xs text-gray-500 mt-1 block">Seller • 2 min ago</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-end">
-                      <div className="bg-blue-600 text-white rounded-lg p-3 max-w-[70%]">
-                        <p className="text-sm">Yes, it's still available! Would you like to meet up?</p>
-                        <span className="text-xs opacity-75 mt-1 block">You • 1 min ago</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <input
-                      type="text"
-                      placeholder="Type your message..."
-                      className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <Button className="bg-blue-600 hover:bg-blue-700">Send</Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Meetup Zones */}
-              <div className="flex-1 p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Safe Meetup Zones
-                </h3>
-                <div className="space-y-4 h-[500px] overflow-y-auto">
-                  {meetupZones.map((zone) => (
-                    <Card key={zone.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex gap-4">
-                          <img
-                            src={zone.image}
-                            alt={zone.name}
-                            className="w-20 h-20 rounded-lg object-cover"
-                          />
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-sm mb-1">{zone.name}</h4>
-                            <p className="text-xs text-gray-600 mb-2">{zone.description}</p>
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <Users className="h-3 w-3" />
-                                {zone.crowdLevel}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {zone.operatingHours}
-                              </div>
-                            </div>
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {zone.facilities.map((facility) => (
-                                <Badge key={facility} variant="outline" className="text-xs">
-                                  {facility}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          className="w-full mt-3 bg-green-600 hover:bg-green-700"
-                          onClick={() => {
-                            setShowChatModal(false);
-                            onNavigate('chat');
-                          }}
-                        >
-                          Schedule Meetup Here
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
