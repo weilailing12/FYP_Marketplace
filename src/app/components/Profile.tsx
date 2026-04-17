@@ -142,7 +142,7 @@ export function Profile({ onNavigate }: ProfileProps) {
       {/* Hero Section */}
       <div className="profile-hero">
         <div className="hero-content">
-          <h1 className="hero-title">My Profile</h1>
+          <h1 className="hero-title">Settings</h1>
           <p className="hero-subtitle">Manage your account settings and preferences</p>
         </div>
       </div>

@@ -38,12 +38,6 @@ export function Navbar({ onNavigate, currentPage }: NavbarProps) {
               <Plus className="h-4 w-4 mr-2" />
               Sell Item
             </Button>
-            <Button
-              onClick={() => onNavigate?.("dashboard")}
-              variant="outline"
-            >
-              My Profile
-            </Button>
           </div>
         </div>
       </div>
