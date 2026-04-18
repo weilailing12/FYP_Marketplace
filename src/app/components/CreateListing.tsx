@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Upload, CheckCircle2, Plus, Image as ImageIcon, Sparkles, Package, Tag, DollarSign, FileText, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
-import { supabase } from "../supabase"; // Connects to your database!
+import { supabase } from "../../supabase";
 
 interface CreateListingProps {
   onNavigate: (page: string) => void;
