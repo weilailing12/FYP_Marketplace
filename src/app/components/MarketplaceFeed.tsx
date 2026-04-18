@@ -71,7 +71,8 @@ export function MarketplaceFeed() {
         </div>
       ) : (
         /* The Product Grid */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        /* The Product Grid */
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
           {filteredProducts.length === 0 ? (
             <div className="col-span-full text-center py-12 text-gray-500 bg-gray-50 rounded-lg border border-dashed">
               <ShoppingCart className="h-12 w-12 mx-auto mb-3 text-gray-400" />
@@ -80,32 +81,34 @@ export function MarketplaceFeed() {
             </div>
           ) : (
             filteredProducts.map((product) => (
-              <Card key={product.id} className="overflow-hidden flex flex-col hover:shadow-lg transition-shadow">
-                <div className="aspect-square relative overflow-hidden bg-gray-100">
+              <Card key={product.id} className="overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 border border-gray-100 group">
+                {/* Fixed Height Image Container - Much smaller and neater! */}
+                <div className="h-40 sm:h-48 relative overflow-hidden bg-gray-50">
                   <img 
                     src={product.image_url || "https://via.placeholder.com/400"} 
                     alt={product.title}
-                    className="object-cover w-full h-full"
+                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                   />
-                  <Badge className="absolute top-3 right-3 bg-white/90 text-black hover:bg-white">
+                  <Badge className="absolute top-2 right-2 bg-white/90 text-black hover:bg-white text-xs px-2 py-0.5 border-none shadow-sm">
                     {product.category}
                   </Badge>
                 </div>
                 
-                <CardHeader className="p-4 pb-2">
-                  <h3 className="font-semibold text-lg line-clamp-1">{product.title}</h3>
-                  <p className="text-2xl font-bold text-blue-600">RM {product.price.toFixed(2)}</p>
+                {/* Tighter Text Spacing */}
+                <CardHeader className="p-3 pb-1 space-y-1">
+                  <h3 className="font-medium text-sm sm:text-base line-clamp-2 leading-tight text-gray-800 group-hover:text-blue-600 transition-colors">
+                    {product.title}
+                  </h3>
                 </CardHeader>
                 
-                <CardContent className="p-4 pt-0 flex-grow">
-                  <p className="text-sm text-gray-500 line-clamp-2">{product.description}</p>
+                <CardContent className="p-3 pt-0 flex-grow flex flex-col justify-end">
+                  <p className="text-lg sm:text-xl font-bold text-blue-600 mb-1">
+                    RM {product.price.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-gray-400 line-clamp-1">
+                    {product.description}
+                  </p>
                 </CardContent>
-                
-                <CardFooter className="p-4 pt-0 border-t border-gray-100 mt-4">
-                  <Button className="w-full mt-4">
-                    Message Seller
-                  </Button>
-                </CardFooter>
               </Card>
             ))
           )}
