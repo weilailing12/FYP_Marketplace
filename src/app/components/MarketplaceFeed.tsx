@@ -75,7 +75,6 @@ export function MarketplaceFeed({ onNavigate }: MarketplaceFeedProps) {
         </div>
       ) : (
         /* The Product Grid */
-        /* The Product Grid */
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
           {filteredProducts.length === 0 ? (
             <div className="col-span-full text-center py-12 text-gray-500 bg-gray-50 rounded-lg border border-dashed">
@@ -85,7 +84,11 @@ export function MarketplaceFeed({ onNavigate }: MarketplaceFeedProps) {
             </div>
           ) : (
             filteredProducts.map((product) => (
-              <Card key={product.id} className="overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 border border-gray-100 group">
+              <Card 
+                key={product.id} 
+                onClick={() => onNavigate('product', product.id)}
+                className="overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 border border-gray-100 group cursor-pointer"
+              >
                 {/* Fixed Height Image Container - Much smaller and neater! */}
                 <div className="h-40 sm:h-48 relative overflow-hidden bg-gray-50">
                   <img 

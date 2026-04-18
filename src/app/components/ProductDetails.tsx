@@ -1,40 +1,9 @@
+import { useState, useEffect } from "react";
+import { ArrowLeft, MessageCircle, User, ShieldCheck, Clock, Loader2, Tag } from "lucide-react";
 import { Button } from "./ui/button";
-import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Star, ShieldCheck, MessageCircle } from "lucide-react";
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  image: string;
-  verified: boolean;
-  category: string;
-  productType: "secondhand" | "clubmerch";
-  clubName?: string;
-}
-
-const mockProducts: Product[] = [
-  { id: "1", title: "Engineering Textbook Bundle", price: 150, image: "https://images.unsplash.com/photo-1731983568664-9c1d8a87e7a2?q=80&w=1080", verified: true, category: "Books", productType: "secondhand" },
-  { id: "2", title: "Scientific Calculator TI-84", price: 80, image: "https://images.unsplash.com/photo-1684146771259-99b8b6089568?q=80&w=1080", verified: true, category: "Electronics", productType: "secondhand" },
-  { id: "3", title: "MacBook Pro 2020", price: 1200, image: "https://images.unsplash.com/flagged/photo-1576697010739-6373b63f3204?q=80&w=1080", verified: true, category: "Electronics", productType: "secondhand" },
-  { id: "4", title: "North Face Backpack", price: 60, image: "https://images.unsplash.com/photo-1655303219938-3a771279c801?q=80&w=1080", verified: true, category: "Accessories", productType: "secondhand" },
-  { id: "5", title: "Modern Desk Lamp", price: 35, image: "https://images.unsplash.com/photo-1621447980929-6638614633c8?q=80&w=1080", verified: true, category: "Furniture", productType: "secondhand" },
-  { id: "6", title: "Sony Noise-Cancelling Headphones", price: 180, image: "https://images.unsplash.com/photo-1762028892204-2ef68f7fcfd5?q=80&w=1080", verified: true, category: "Electronics", productType: "secondhand" },
-  { id: "7", title: "iPhone 13 Pro", price: 800, image: "https://images.unsplash.com/photo-1741061961703-0739f3454314?q=80&w=1080", verified: true, category: "Electronics", productType: "secondhand" },
-  { id: "8", title: "Business Statistics Textbook", price: 45, image: "https://images.unsplash.com/photo-1731983568664-9c1d8a87e7a2?q=80&w=1080", verified: true, category: "Books", productType: "secondhand" },
-  { id: "9", title: "BoardGames Club T-Shirt", price: 25, image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1080", verified: true, category: "Clothing", productType: "clubmerch", clubName: "BoardGames" },
-  { id: "10", title: "Yoga Club Hoodie", price: 45, image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=1080", verified: true, category: "Clothing", productType: "clubmerch", clubName: "Yoga" },
-  { id: "11", title: "World History Club Notebook", price: 12, image: "https://images.unsplash.com/photo-1531346878377-a5be20888e57?q=80&w=1080", verified: true, category: "Accessories", productType: "clubmerch", clubName: "WorldHistory" },
-  { id: "12", title: "Music Club Sticker Pack", price: 8, image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=1080", verified: true, category: "Accessories", productType: "clubmerch", clubName: "Music" },
-  { id: "13", title: "Photography Club Keychain", price: 6, image: "https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?q=80&w=1080", verified: true, category: "Accessories", productType: "clubmerch", clubName: "Photography" },
-  { id: "14", title: "BoardGames Club Mug", price: 15, image: "https://images.unsplash.com/photo-1514228742587-6b1558fcf93a?q=80&w=1080", verified: true, category: "Accessories", productType: "clubmerch", clubName: "BoardGames" },
-  { id: "15", title: "Yoga Club Yoga Mat", price: 30, image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1080", verified: true, category: "Other", productType: "clubmerch", clubName: "Yoga" },
-  { id: "16", title: "World History Club Poster", price: 10, image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=1080", verified: true, category: "Other", productType: "clubmerch", clubName: "WorldHistory" },
-  { id: "17", title: "Music Club Event Ticket", price: 20, image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=1080", verified: true, category: "Other", productType: "clubmerch", clubName: "Music" },
-  { id: "18", title: "Photography Club Camera Strap", price: 18, image: "https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?q=80&w=1080", verified: true, category: "Accessories", productType: "clubmerch", clubName: "Photography" },
-];
+import { Card, CardContent } from "./ui/card";
+import { supabase } from "../../supabase";
 
 interface ProductDetailsProps {
   onNavigate: (page: string) => void;
@@ -42,119 +11,148 @@ interface ProductDetailsProps {
 }
 
 export function ProductDetails({ onNavigate, productId }: ProductDetailsProps) {
-  const product = mockProducts.find(p => p.id === productId);
+  const [product, setProduct] = useState<any>(null);
+  const [seller, setSeller] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!product) {
+  useEffect(() => {
+    async function fetchProductAndSeller() {
+      if (!productId) return;
+      
+      try {
+        // 1. Fetch the exact product that was clicked
+        const { data: productData, error: productError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productId)
+          .single();
+
+        if (productError) throw productError;
+        setProduct(productData);
+
+        // 2. Fetch the profile of the student selling it
+        if (productData?.seller_id) {
+          const { data: sellerData, error: sellerError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', productData.seller_id)
+            .single();
+            
+          if (!sellerError && sellerData) {
+            setSeller(sellerData);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching details:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProductAndSeller();
+  }, [productId]);
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
-          <p className="mb-4">Product not found</p>
-          <Button onClick={() => onNavigate('marketplace')}>Back to Marketplace</Button>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-gray-500">
+        <Loader2 className="h-10 w-10 animate-spin mb-4 text-blue-500" />
+        <p>Loading item details...</p>
       </div>
     );
   }
 
-  const seller = {
-    name: "Student Seller",
-    avatar: product.title.substring(0, 2).toUpperCase(),
-    rating: 4.5,
-    totalRatings: 12,
-    verified: product.verified,
-  };
+  if (!product) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Item not found</h2>
+        <Button onClick={() => onNavigate('marketplace')}>Back to Marketplace</Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => onNavigate('marketplace')}
-          className="mb-4"
-        >
-          ← Back to Marketplace
-        </Button>
+    <div className="max-w-5xl mx-auto px-4 py-8">
+      {/* Back Button */}
+      <button 
+        onClick={() => onNavigate('marketplace')}
+        className="flex items-center text-gray-500 hover:text-blue-600 mb-6 transition-colors font-medium"
+      >
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Back to Marketplace
+      </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column - Image */}
-          <div className="relative">
-            <div className="relative aspect-square rounded-lg overflow-hidden bg-white border shadow-sm">
-              <img
-                src={product.image}
-                alt={product.title}
-                className="object-cover w-full h-full"
-              />
-              <Badge className="absolute top-4 right-4 bg-green-600 hover:bg-green-700 text-white px-3 py-2">
-                <ShieldCheck className="h-4 w-4 mr-2" />
-                Verified Real Photo
-              </Badge>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+        {/* Left Column: Image */}
+        <div className="bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 flex items-center justify-center h-[400px] md:h-[500px]">
+          <img 
+            src={product.image_url || "https://via.placeholder.com/600"} 
+            alt={product.title}
+            className="object-contain w-full h-full"
+          />
+        </div>
+
+        {/* Right Column: Details & Seller Info */}
+        <div className="flex flex-col">
+          <div className="mb-6">
+            <Badge className="mb-3 bg-blue-50 text-blue-700 hover:bg-blue-100 border-none px-3 py-1 text-sm">
+              <Tag className="w-3 h-3 mr-1 inline" />
+              {product.category}
+            </Badge>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 leading-tight">
+              {product.title}
+            </h1>
+            <p className="text-4xl font-extrabold text-blue-600 mb-4">
+              RM {product.price.toFixed(2)}
+            </p>
+            
+            <div className="flex items-center text-gray-500 text-sm space-x-4 mb-6 pb-6 border-b border-gray-100">
+              <span className="flex items-center">
+                <Clock className="w-4 h-4 mr-1" />
+                Posted recently
+              </span>
+              <span className="flex items-center">
+                <Badge variant="outline" className="text-gray-600 bg-gray-50">
+                  {product.product_type === 'secondhand' ? 'Second-hand' : 'Brand New'}
+                </Badge>
+              </span>
             </div>
+
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
+            <p className="text-gray-600 leading-relaxed whitespace-pre-wrap mb-8">
+              {product.description}
+            </p>
           </div>
 
-          {/* Right Column - Product Info */}
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">{product.title}</h1>
-              <p className="text-3xl font-bold text-blue-600">RM {product.price}</p>
-            </div>
-
-            <div className="border-t pt-4">
-              <h2 className="text-xl font-semibold mb-2">Description</h2>
-              <p className="text-gray-700 leading-relaxed">
-                This is a pre-owned {product.title} in excellent condition. 
-                Perfect for students looking for quality at a reasonable price. 
-                Meetups are available at campus safe zones.
-              </p>
-            </div>
-
-            {/* Seller Info Card */}
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800">Seller Information</h3>
-                <div className="flex items-start gap-4">
-                  <Avatar className="h-16 w-16">
-                    <AvatarFallback className="bg-blue-600 text-white text-xl">
-                      {seller.avatar}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium">{seller.name}</span>
-                      {seller.verified && (
-                        <Badge variant="secondary" className="text-[10px] bg-green-50 text-green-700 border-green-200">
-                          Verified Student
-                        </Badge>
+          {/* Seller Profile Card */}
+          <Card className="mt-auto border-blue-100 bg-blue-50/30">
+            <CardContent className="p-5">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Seller Information</h3>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mr-4">
+                    <User className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 flex items-center text-lg">
+                      {seller ? seller.full_name : "Campus Student"}
+                      {seller?.is_verified && (
+                        <ShieldCheck className="w-5 h-5 text-green-500 ml-1" title="Verified Student" />
                       )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`h-4 w-4 ${star <= Math.floor(seller.rating)
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "fill-gray-200 text-gray-200"
-                            }`}
-                        />
-                      ))}
-                      <span className="text-sm text-gray-600 ml-2">
-                        {seller.rating} ({seller.totalRatings} reviews)
-                      </span>
-                    </div>
+                    </h4>
+                    <p className="text-sm text-gray-500">
+                      {seller?.student_id ? `Student ID: ${seller.student_id}` : "Unverified Member"}
+                    </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Buttons Row */}
-            <div className="flex gap-4">
-              <Button
-                className="flex-1 bg-blue-600 hover:bg-blue-700 h-12 text-lg"
-                onClick={() => onNavigate('chat')}
-              >
-                <MessageCircle className="h-5 w-5 mr-2" />
-                Chat with Seller
-              </Button>
-            </div>
-          </div>
+                
+                {/* Notice how clicking this goes to your chat page! */}
+                <Button onClick={() => onNavigate('chat')} className="bg-blue-600 hover:bg-blue-700">
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Chat
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
