@@ -2,11 +2,15 @@ import { useState, useEffect } from "react";
 import { Search, Filter, ShoppingCart, Loader2 } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "./ui/card";
+import { Card, CardContent, CardHeader } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { supabase } from "../../supabase";
 
-export function MarketplaceFeed() {
+interface MarketplaceFeedProps {
+  onNavigate: (page: string, productId?: string) => void;
+}
+
+export function MarketplaceFeed({ onNavigate }: MarketplaceFeedProps) {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
