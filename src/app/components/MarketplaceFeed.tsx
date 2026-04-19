@@ -89,33 +89,26 @@ export function MarketplaceFeed({ onNavigate }: MarketplaceFeedProps) {
                 onClick={() => onNavigate('product', product.id)}
                 className="overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 border border-gray-100 group cursor-pointer"
               >
-                {/* Fixed Height Image Container - Much smaller and neater! */}
+                {/* 1. Just the Picture */}
                 <div className="h-40 sm:h-48 relative overflow-hidden bg-gray-50">
                   <img 
                     src={product.image_url || "https://via.placeholder.com/400"} 
                     alt={product.title}
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                   />
-                  <Badge className="absolute top-2 right-2 bg-white/90 text-black hover:bg-white text-xs px-2 py-0.5 border-none shadow-sm">
-                    {product.category}
-                  </Badge>
                 </div>
                 
-                {/* Tighter Text Spacing */}
-                <CardHeader className="p-3 pb-1 space-y-1">
+                {/* 2. Just the Name (and Price) */}
+                <CardHeader className="p-3">
                   <h3 className="font-medium text-sm sm:text-base line-clamp-2 leading-tight text-gray-800 group-hover:text-blue-600 transition-colors">
                     {product.title}
                   </h3>
-                </CardHeader>
-                
-                <CardContent className="p-3 pt-0 flex-grow flex flex-col justify-end">
-                  <p className="text-lg sm:text-xl font-bold text-blue-600 mb-1">
+                  <p className="text-sm font-bold text-blue-600 mt-1">
                     RM {product.price.toFixed(2)}
                   </p>
-                  <p className="text-xs text-gray-400 line-clamp-1">
-                    {product.description}
-                  </p>
-                </CardContent>
+                </CardHeader>
+                
+                {/* Notice that <CardContent> with the description is completely deleted! */}
               </Card>
             ))
           )}
