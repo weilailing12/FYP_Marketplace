@@ -10,10 +10,7 @@ import { Separator } from "./ui/separator";
 import { Loader2, CheckCircle2, User, Bell, Shield, Settings, Palette, Moon, Sun } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-
-interface ProfileProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
 interface UserProfile {
   name: string;
@@ -34,7 +31,8 @@ interface UserSettings {
   twoFactorAuth: boolean;
 }
 
-export function Profile({ onNavigate }: ProfileProps) {
+export function Profile() {
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -320,7 +318,7 @@ export function Profile({ onNavigate }: ProfileProps) {
                       type="button"
                       variant="outline"
                       className="flex-1"
-                      onClick={() => onNavigate("marketplace")}
+                      onClick={() => navigate("/marketplace")}
                       disabled={saving}
                     >
                       Back to Marketplace

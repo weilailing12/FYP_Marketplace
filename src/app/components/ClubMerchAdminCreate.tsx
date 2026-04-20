@@ -16,11 +16,10 @@ const clubOptions = [
   { value: "Photography", label: "Photography Club" },
 ];
 
-interface ClubMerchAdminCreateProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export function ClubMerchAdminCreate({ onNavigate }: ClubMerchAdminCreateProps) {
+export function ClubMerchAdminCreate() {
+  const navigate = useNavigate();
   const [imageUploaded, setImageUploaded] = useState(false);
   const [selectedClub, setSelectedClub] = useState<string>("");
   const [formData, setFormData] = useState({
@@ -48,7 +47,7 @@ export function ClubMerchAdminCreate({ onNavigate }: ClubMerchAdminCreateProps) 
     setSaveSuccess(true);
     setTimeout(() => {
       setSaveSuccess(false);
-      onNavigate("clubmerch");
+      navigate("/clubmerch");
     }, 1200);
   };
 

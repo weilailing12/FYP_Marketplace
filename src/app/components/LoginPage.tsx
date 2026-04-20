@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 
+import { useNavigate } from "react-router-dom";
+
 // Defined the Props to match your App.tsx logic
 interface LoginPageProps {
   onLogin: () => void;
-  onNavigate: (page: string) => void;
 }
 
-export const LoginPage = ({ onLogin, onNavigate }: LoginPageProps) => {
+export const LoginPage = ({ onLogin }: LoginPageProps) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -55,7 +57,7 @@ export const LoginPage = ({ onLogin, onNavigate }: LoginPageProps) => {
         <div className="login-footer">
           <span className="login-footer-text">New Student?</span>
           <button 
-            onClick={() => onNavigate("register")}
+            onClick={() => navigate("/register")}
             className="link-button"
           >
             Create account & Verify ID

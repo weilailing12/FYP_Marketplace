@@ -6,11 +6,10 @@ import { Card, CardContent, CardHeader } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { supabase } from "../../supabase";
 
-interface MarketplaceFeedProps {
-  onNavigate: (page: string, productId?: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export function MarketplaceFeed({ onNavigate }: MarketplaceFeedProps) {
+export function MarketplaceFeed() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -86,7 +85,7 @@ export function MarketplaceFeed({ onNavigate }: MarketplaceFeedProps) {
             filteredProducts.map((product) => (
               <Card 
                 key={product.id} 
-                onClick={() => onNavigate('product', product.id)}
+                onClick={() => navigate(`/product/${product.id}`)}
                 className="overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 border border-gray-100 group cursor-pointer"
               >
                 {/* 1. Just the Picture */}

@@ -4,10 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Edit, Trash2, ShieldCheck } from "lucide-react";
-
-interface DashboardProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
 interface Listing {
   id: string;
@@ -79,7 +76,8 @@ const mockPurchases = [
   },
 ];
 
-export function Dashboard({ onNavigate }: DashboardProps) {
+export function Dashboard() {
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -104,7 +102,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 <p className="text-gray-600">student@utar.edu.my</p>
                 <p className="text-sm text-gray-500 mt-1">Member since Jan 2025</p>
               </div>
-              <Button variant="outline" onClick={() => onNavigate('profile')}>Edit Profile</Button>
+              <Button variant="outline" onClick={() => navigate('/profile')}>Edit Profile</Button>
             </div>
           </CardContent>
         </Card>

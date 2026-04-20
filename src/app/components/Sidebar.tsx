@@ -1,15 +1,18 @@
 import { Button } from "./ui/button";
 import { cn } from "./ui/utils";
 import { Menu, X } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 interface SidebarProps {
-  onNavigate: (page: string) => void;
-  currentPage: string;
   isOpen: boolean;
   onToggle: () => void;
 }
 
-export function Sidebar({ onNavigate, currentPage, isOpen, onToggle }: SidebarProps) {
+export function Sidebar({ isOpen, onToggle }: SidebarProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentPage = location.pathname.substring(1) || "marketplace";
+
   const menuItems = [
     { label: "Second Hand Products", page: "marketplace", icon: "🛍️" },
     { label: "Club Merchandise", page: "clubmerch", icon: "👕" },
@@ -40,7 +43,7 @@ export function Sidebar({ onNavigate, currentPage, isOpen, onToggle }: SidebarPr
               <Button
                 key={item.page}
                 onClick={() => {
-                  onNavigate(item.page);
+                  navigate(`/${item.page}`);
                   onToggle(); // Close sidebar after navigation
                 }}
                 variant={currentPage === item.page ? "default" : "ghost"}

@@ -121,11 +121,10 @@ const mockProducts: Product[] = [
   },
 ];
 
-interface ClubMerchPageProps {
-  onNavigate: (page: string, productId?: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export function ClubMerchPage({ onNavigate }: ClubMerchPageProps) {
+export function ClubMerchPage() {
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedClub, setSelectedClub] = useState("all");
 
@@ -165,7 +164,7 @@ export function ClubMerchPage({ onNavigate }: ClubMerchPageProps) {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Club Merchandise</h1>
             <p className="text-gray-600">Support your favorite student clubs with exclusive merchandise</p>
           </div>
-          <Button variant="outline" onClick={() => onNavigate('clubmerchcreate')}>
+          <Button variant="outline" onClick={() => navigate('/clubmerchcreate')}>
             Create Club Merchandise
           </Button>
         </div>
@@ -214,7 +213,7 @@ export function ClubMerchPage({ onNavigate }: ClubMerchPageProps) {
                 <Card
                   key={product.id}
                   className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-                  onClick={() => onNavigate('product', product.id)}
+                  onClick={() => navigate(`/product/${product.id}`)}
                 >
                   <div className="relative aspect-square">
                     <img

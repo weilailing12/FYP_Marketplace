@@ -16,11 +16,10 @@ interface LostFoundItem {
   contactName: string;
 }
 
-interface LostAndFoundPageProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export function LostAndFoundPage({ onNavigate }: LostAndFoundPageProps) {
+export function LostAndFoundPage() {
+  const navigate = useNavigate();
   const [items] = useState<LostFoundItem[]>([
     {
       id: "1",
@@ -55,7 +54,7 @@ export function LostAndFoundPage({ onNavigate }: LostAndFoundPageProps) {
             </h1>
             <p className="text-gray-600">Help your fellow students recover their belongings.</p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700 h-11" onClick={() => onNavigate('reportlostfound')}>
+          <Button className="bg-blue-600 hover:bg-blue-700 h-11" onClick={() => navigate('/reportlostfound')}>
             <PlusCircle className="h-4 w-4 mr-2" />
             Report Lost/Found
           </Button>
@@ -70,19 +69,19 @@ export function LostAndFoundPage({ onNavigate }: LostAndFoundPageProps) {
 
           <TabsContent value="all" className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {items.map((item) => (
-              <LostFoundCard key={item.id} item={item} onNavigate={onNavigate} />
+              <LostFoundCard key={item.id} item={item} />
             ))}
           </TabsContent>
           
           <TabsContent value="lost" className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {items.filter(i => i.type === 'lost').map((item) => (
-              <LostFoundCard key={item.id} item={item} onNavigate={onNavigate} />
+              <LostFoundCard key={item.id} item={item} />
             ))}
           </TabsContent>
 
           <TabsContent value="found" className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {items.filter(i => i.type === 'found').map((item) => (
-              <LostFoundCard key={item.id} item={item} onNavigate={onNavigate} />
+              <LostFoundCard key={item.id} item={item} />
             ))}
           </TabsContent>
         </Tabs>
@@ -92,7 +91,8 @@ export function LostAndFoundPage({ onNavigate }: LostAndFoundPageProps) {
 }
 
 // Sub-component for the card to keep code clean
-function LostFoundCard({ item, onNavigate }: { item: LostFoundItem, onNavigate: any }) {
+function LostFoundCard({ item }: { item: LostFoundItem }) {
+  const navigate = useNavigate();
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow border-none shadow-sm">
       <div className="flex h-44">
@@ -115,7 +115,7 @@ function LostFoundCard({ item, onNavigate }: { item: LostFoundItem, onNavigate: 
             </div>
             <p className="text-sm text-gray-600 mt-2 line-clamp-2">{item.description}</p>
           </div>
-          <Button variant="ghost" className="w-full mt-2 text-blue-600 h-8 text-xs hover:bg-blue-50" onClick={() => onNavigate('chat')}>
+          <Button variant="ghost" className="w-full mt-2 text-blue-600 h-8 text-xs hover:bg-blue-50" onClick={() => navigate('/chat')}>
             Contact {item.contactName}
           </Button>
         </CardContent>

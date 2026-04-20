@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { LoginPage } from "./components/LoginPage";
 import { Register } from "./components/Register";
 import { MarketplaceFeed } from "./components/MarketplaceFeed";
@@ -14,56 +15,27 @@ import { ReportLostFound } from "./components/ReportLostFound";
 import { Sidebar } from "./components/Sidebar";
 import { Navbar } from "./components/Navbar";
 
-type Page = "login" | "register" | "marketplace" | "product" | "create" | "chat" | "clubmerchcreate" | "dashboard" | "profile" | "clubmerch" | "lostfound" | "reportlostfound";
-
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>("login");
-  const [selectedProductId, setSelectedProductId] = useState<string | undefined>();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleNavigate = (page: string, productId?: string) => {
-    setCurrentPage(page as Page);
-    if (productId) {
-      setSelectedProductId(productId);
-    }
-  };
-
   const handleLogin = () => {
     setIsLoggedIn(true);
-    setCurrentPage("marketplace");
   };
 
-  if (!isLoggedIn && currentPage === "login") {
-    return <LoginPage onLogin={handleLogin} onNavigate={handleNavigate}/>;
+  if (!isLoggedIn) {
+    return (
+      <Routes>
+        <Route path="/register" element={<Register />} />
+        <Route path="*" element={<LoginPage onLogin={handleLogin} />} />
+      </Routes>
+    );
   }
-
-  if (!isLoggedIn && currentPage === "register") {
-    return <Register onNavigate={handleNavigate} />;
-  }
-
-  const renderContent = () => {
-    switch (currentPage) {
-      case "marketplace": return <MarketplaceFeed onNavigate={handleNavigate} />;
-      case "product": return <ProductDetails onNavigate={handleNavigate} productId={selectedProductId} />;
-      case "create": return <CreateListing onNavigate={handleNavigate} />;
-      case "chat": return <ChatMeetup onNavigate={handleNavigate} />;
-      case "clubmerchcreate": return <ClubMerchAdminCreate onNavigate={handleNavigate} />;
-      case "dashboard": return <Dashboard onNavigate={handleNavigate} />;
-      case "profile": return <Profile onNavigate={handleNavigate} />;
-      case "clubmerch": return <ClubMerchPage onNavigate={handleNavigate} />;
-      case "lostfound": return <LostAndFoundPage onNavigate={handleNavigate} />;
-      case "reportlostfound": return <ReportLostFound onNavigate={handleNavigate} />;
-      default: return <MarketplaceFeed onNavigate={handleNavigate} />;
-    }
-  };
 
   return (
     <div className="min-h-screen flex bg-gray-50">
       {/* 1. Sidebar */}
       <Sidebar
-        onNavigate={handleNavigate}
-        currentPage={currentPage}
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
       />
@@ -72,11 +44,24 @@ export default function App() {
       <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'lg:ml-64' : 'ml-0'}`}>
         
         {/* 3. The Global Navbar is back! */}
-        <Navbar onNavigate={handleNavigate} currentPage={currentPage} />
+        <Navbar />
         
         {/* 4. Page Content */}
         <main className="flex-1">
-          {renderContent()}
+          <Routes>
+            <Route path="/" element={<Navigate to="/marketplace" replace />} />
+            <Route path="/marketplace" element={<MarketplaceFeed />} />
+            <Route path="/product/:productId" element={<ProductDetails />} />
+            <Route path="/create" element={<CreateListing />} />
+            <Route path="/chat" element={<ChatMeetup />} />
+            <Route path="/clubmerchcreate" element={<ClubMerchAdminCreate />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/clubmerch" element={<ClubMerchPage />} />
+            <Route path="/lostfound" element={<LostAndFoundPage />} />
+            <Route path="/reportlostfound" element={<ReportLostFound />} />
+            <Route path="*" element={<Navigate to="/marketplace" replace />} />
+          </Routes>
         </main>
 
       </div>

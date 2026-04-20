@@ -9,11 +9,10 @@ import { Upload, CheckCircle2, Plus, Image as ImageIcon, Sparkles, Package, Tag,
 import { Alert, AlertDescription } from "./ui/alert";
 import { supabase } from "../../supabase";
 
-interface CreateListingProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export function CreateListing({ onNavigate }: CreateListingProps) {
+export function CreateListing() {
+  const navigate = useNavigate();
   const [imageUploaded, setImageUploaded] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,7 +98,7 @@ export function CreateListing({ onNavigate }: CreateListingProps) {
       if (error) throw error;
 
       // Success! Navigate back to the marketplace
-      onNavigate('marketplace');
+      navigate('/marketplace');
       
     } catch (error) {
       console.error("Error creating listing:", error);

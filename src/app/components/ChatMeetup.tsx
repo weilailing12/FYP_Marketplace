@@ -17,11 +17,10 @@ interface Message {
   isMeetupProposal?: boolean; 
 }
 
-interface ChatMeetupProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export function ChatMeetup({ onNavigate }: ChatMeetupProps) {
+export function ChatMeetup() {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
     { id: "1", sender: "other", text: "Hi! Is this MacBook still available?", timestamp: "10:30 AM" },
     { id: "2", sender: "me", text: "Yes, it's still available! Are you interested?", timestamp: "10:32 AM" },
@@ -129,7 +128,7 @@ export function ChatMeetup({ onNavigate }: ChatMeetupProps) {
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Button variant="ghost" onClick={() => onNavigate('product')} className="mb-4">← Back</Button>
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">← Back</Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-220px)]">
           {/* Chat Side */}

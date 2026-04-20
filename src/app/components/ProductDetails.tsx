@@ -5,12 +5,11 @@ import { Badge } from "./ui/badge";
 import { Card, CardContent } from "./ui/card";
 import { supabase } from "../../supabase";
 
-interface ProductDetailsProps {
-  onNavigate: (page: string) => void;
-  productId?: string;
-}
+import { useNavigate, useParams } from "react-router-dom";
 
-export function ProductDetails({ onNavigate, productId }: ProductDetailsProps) {
+export function ProductDetails() {
+  const navigate = useNavigate();
+  const { productId } = useParams();
   const [product, setProduct] = useState<any>(null);
   const [seller, setSeller] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -65,7 +64,7 @@ export function ProductDetails({ onNavigate, productId }: ProductDetailsProps) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">Item not found</h2>
-        <Button onClick={() => onNavigate('marketplace')}>Back to Marketplace</Button>
+        <Button onClick={() => navigate('/marketplace')}>Back to Marketplace</Button>
       </div>
     );
   }
@@ -74,7 +73,7 @@ export function ProductDetails({ onNavigate, productId }: ProductDetailsProps) {
     <div className="max-w-5xl mx-auto px-4 py-8">
       {/* Back Button */}
       <button 
-        onClick={() => onNavigate('marketplace')}
+        onClick={() => navigate('/marketplace')}
         className="flex items-center text-gray-500 hover:text-blue-600 mb-6 transition-colors font-medium"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
@@ -146,7 +145,7 @@ export function ProductDetails({ onNavigate, productId }: ProductDetailsProps) {
                 </div>
                 
                 {/* Notice how clicking this goes to your chat page! */}
-                <Button onClick={() => onNavigate('chat')} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={() => navigate('/chat')} className="bg-blue-600 hover:bg-blue-700">
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Chat
                 </Button>

@@ -1,14 +1,13 @@
 import React, { useMemo, useState } from "react";
 
-interface RegisterProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
 type OcrResponse =
   | { name?: string; studentId?: string; rawText?: string; error?: string }
   | undefined;
 
-export const Register = ({ onNavigate }: RegisterProps) => {
+export const Register = () => {
+  const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +80,7 @@ export const Register = ({ onNavigate }: RegisterProps) => {
 
       if (res.ok) {
         alert("Verification email sent! Please check your inbox.");
-        onNavigate("login");
+        navigate("/login");
       } else {
         setError(data.error || "Failed to send email.");
       }
@@ -157,7 +156,7 @@ export const Register = ({ onNavigate }: RegisterProps) => {
           </button>
 
           <button
-            onClick={() => onNavigate("login")}
+            onClick={() => navigate("/login")}
             className="link-button"
             style={{ display: "block", marginTop: "16px", width: "100%", textAlign: "center", background: "none", border: "none", color: "#007bff", cursor: "pointer" }}
             disabled={isProcessing}

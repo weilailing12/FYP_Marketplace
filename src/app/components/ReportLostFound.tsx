@@ -8,11 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Upload, CheckCircle2, Plus, Image as ImageIcon } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
 
-interface ReportLostFoundProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export function ReportLostFound({ onNavigate }: ReportLostFoundProps) {
+export function ReportLostFound() {
+  const navigate = useNavigate();
   const [imageUploaded, setImageUploaded] = useState(false);
   const [itemType, setItemType] = useState<"lost" | "found">("lost");
   const [formData, setFormData] = useState({
@@ -37,7 +36,7 @@ export function ReportLostFound({ onNavigate }: ReportLostFoundProps) {
     e.preventDefault();
     // Navigate back to lost and found page after submitting
     setTimeout(() => {
-      onNavigate('lostfound');
+      navigate('/lostfound');
     }, 500);
   };
 
