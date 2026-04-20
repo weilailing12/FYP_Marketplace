@@ -14,6 +14,7 @@ import { LostAndFoundPage } from "./components/LostAndFoundPage";
 import { ReportLostFound } from "./components/ReportLostFound";
 import { Sidebar } from "./components/Sidebar";
 import { Navbar } from "./components/Navbar";
+import { EditProduct } from "./components/EditProduct";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="/" element={<Navigate to="/marketplace" replace />} />
             <Route path="/marketplace" element={<MarketplaceFeed />} />
             <Route path="/product/:productId" element={<ProductDetails />} />
+            <Route path="/edit/:productId" element={<EditProduct />} />
             <Route path="/create" element={<CreateListing />} />
             <Route path="/chat" element={<ChatMeetup />} />
             <Route path="/clubmerchcreate" element={<ClubMerchAdminCreate />} />

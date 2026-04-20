@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, MessageCircle, User, ShieldCheck, Clock, Loader2, Tag } from "lucide-react";
+import { ArrowLeft, MessageCircle, User, ShieldCheck, Clock, Loader2, Tag, Edit2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Card, CardContent } from "./ui/card";
@@ -71,14 +71,26 @@ export function ProductDetails() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      {/* Back Button */}
-      <button 
-        onClick={() => navigate('/marketplace')}
-        className="flex items-center text-gray-500 hover:text-blue-600 mb-6 transition-colors font-medium"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Marketplace
-      </button>
+      {/* Top Bar Navigation */}
+      <div className="flex items-center justify-between mb-6">
+        <button 
+          onClick={() => navigate(-1)}
+          className="flex items-center text-gray-500 hover:text-blue-600 transition-colors font-medium"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </button>
+
+        {/* Edit Button - ideally this is only shown if the current user is the owner */}
+        <Button 
+          variant="outline" 
+          onClick={() => navigate(`/edit/${product.id}`)}
+          className="text-blue-600 border-blue-200 hover:bg-blue-50"
+        >
+          <Edit2 className="w-4 h-4 mr-2" />
+          Edit Listing
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         {/* Left Column: Image */}
