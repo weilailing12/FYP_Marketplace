@@ -121,18 +121,26 @@ const mockProducts: Product[] = [
   },
 ];
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 export function ClubMerchPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedClub, setSelectedClub] = useState("all");
+
+  const searchQuery = searchParams.get("q") || "";
 
   // Get unique clubs
   const clubs = Array.from(new Set(mockProducts.map(p => p.clubName).filter(Boolean))) as string[];
 
   // Filter products based on current filters
   const filteredProducts = mockProducts.filter((product) => {
+    // Search query filter
+    if (searchQuery && !product.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+
     // Category filter
     if (selectedCategory !== "all" && product.category.toLowerCase() !== selectedCategory) {
       return false;

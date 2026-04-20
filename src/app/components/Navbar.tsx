@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Search, Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -8,17 +9,28 @@ export function Navbar() {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   
-  const currentQuery = searchParams.get("q") || "";
+  const [localQuery, setLocalQuery] = useState(searchParams.get("q") || "");
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Keep local query in sync with URL if URL changes
+  useEffect(() => {
+    setLocalQuery(searchParams.get("q") || "");
+  }, [searchParams]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
+    setLocalQuery(query);
     
-    // If not on marketplace page, navigate to marketplace first
-    if (location.pathname !== '/marketplace') {
-      navigate(`/marketplace?q=${encodeURIComponent(query)}`);
-    } else {
-      // Update URL search params in place without adding to history stack
+    // Live search ONLY if we are already on a searchable page
+    if (location.pathname === '/marketplace' || location.pathname === '/clubmerch') {
       setSearchParams(query ? { q: query } : {}, { replace: true });
+    }
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // If we're not on a searchable page, redirect to marketplace to show results
+    if (location.pathname !== '/marketplace' && location.pathname !== '/clubmerch') {
+      navigate(`/marketplace?q=${encodeURIComponent(localQuery)}`);
     }
   };
 
@@ -34,16 +46,16 @@ export function Navbar() {
           </button>
 
           <div className="hidden md:flex flex-1 max-w-2xl mx-8">
-            <div className="relative w-full">
+            <form onSubmit={handleSearchSubmit} className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 type="search"
                 placeholder="Search items, categories..."
                 className="pl-10"
-                value={currentQuery}
-                onChange={handleSearch}
+                value={localQuery}
+                onChange={handleSearchChange}
               />
-            </div>
+            </form>
           </div>
 
           <div className="flex items-center gap-3">
