@@ -16,8 +16,8 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const menuItems = [
     { label: "Second Hand Products", page: "marketplace", icon: "🛍️" },
     { label: "Club Merchandise", page: "clubmerch", icon: "👕" },
-    { label: "Settings", page: "profile", icon: "⚙️" },
     { label: "Lost & Found Item", page: "lostfound", icon: "🔍" },
+    { label: "Settings", page: "profile", icon: "⚙️" },
   ];
 
   return (
