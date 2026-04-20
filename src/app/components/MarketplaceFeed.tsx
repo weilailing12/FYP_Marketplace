@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, ShoppingCart, Loader2 } from "lucide-react";
-import { Input } from "./ui/input";
+import { Filter, ShoppingCart, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardHeader } from "./ui/card";
-import { Badge } from "./ui/badge";
+import { Card, CardHeader } from "./ui/card";
 import { supabase } from "../../supabase";
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 export function MarketplaceFeed() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  
+  const searchQuery = searchParams.get("q") || "";
 
   // This function fetches the real data from Supabase!
   useEffect(() => {
@@ -49,16 +49,7 @@ export function MarketplaceFeed() {
     <div className="marketplace-container">
       {/* Search and Filter Header */}
       <div className="marketplace-header mb-8">
-        <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input 
-              placeholder="Search items, categories..." 
-              className="pl-10 w-full"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+        <div className="flex flex-col md:flex-row gap-4 justify-end items-center">
           <Button variant="outline" className="w-full md:w-auto">
             <Filter className="h-4 w-4 mr-2" />
             Filter

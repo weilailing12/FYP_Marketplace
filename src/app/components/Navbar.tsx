@@ -1,10 +1,26 @@
 import { Search, Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 
 export function Navbar() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  
+  const currentQuery = searchParams.get("q") || "";
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    
+    // If not on marketplace page, navigate to marketplace first
+    if (location.pathname !== '/marketplace') {
+      navigate(`/marketplace?q=${encodeURIComponent(query)}`);
+    } else {
+      // Update URL search params in place without adding to history stack
+      setSearchParams(query ? { q: query } : {}, { replace: true });
+    }
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b shadow-sm">
@@ -22,8 +38,10 @@ export function Navbar() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 type="search"
-                placeholder="Search for items..."
+                placeholder="Search items, categories..."
                 className="pl-10"
+                value={currentQuery}
+                onChange={handleSearch}
               />
             </div>
           </div>
