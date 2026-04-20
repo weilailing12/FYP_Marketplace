@@ -21,6 +21,7 @@ export function MarketplaceFeed() {
         const { data, error } = await supabase
           .from('products')
           .select('*')
+          .eq('product_type', 'secondhand') // Only show secondhand items
           .eq('status', 'active') // Only show active items
           .order('created_at', { ascending: false }); // Newest items first!
 

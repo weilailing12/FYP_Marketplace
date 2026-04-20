@@ -5,8 +5,10 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Upload, Package, Tag, DollarSign, Image as ImageIcon } from "lucide-react";
+import { Upload, Package, Tag, DollarSign, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
+import { supabase } from "../../supabase";
+import { useNavigate } from "react-router-dom";
 
 const clubOptions = [
   { value: "BoardGames", label: "BoardGames Club" },
@@ -16,24 +18,51 @@ const clubOptions = [
   { value: "Photography", label: "Photography Club" },
 ];
 
-import { useNavigate } from "react-router-dom";
-
 export function ClubMerchAdminCreate() {
   const navigate = useNavigate();
   const [imageUploaded, setImageUploaded] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [selectedClub, setSelectedClub] = useState<string>("");
   const [formData, setFormData] = useState({
     title: "",
     category: "",
     price: "",
-    description: ""
+    description: "",
+    image_url: ""
   });
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `clubmerch_${Date.now()}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('campus-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('campus-images')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, image_url: publicUrlData.publicUrl }));
       setImageUploaded(true);
+      
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("Failed to upload image. Make sure your bucket is named 'campus-images' and is Public!");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -41,14 +70,52 @@ export function ClubMerchAdminCreate() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate club merchandise submission flow.
-    setSaveSuccess(true);
-    setTimeout(() => {
-      setSaveSuccess(false);
-      navigate("/clubmerch");
-    }, 1200);
+    if (!selectedClub) {
+      alert("Please select a club first!");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Get the mock seller ID
+      const { data: profiles } = await supabase.from('profiles').select('id').limit(1);
+      const sellerId = profiles?.[0]?.id;
+
+      if (!sellerId) {
+        alert("You need at least one user in your profiles table to sell an item!");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { error } = await supabase.from('products').insert({
+        seller_id: sellerId,
+        title: formData.title,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        category: formData.category,
+        product_type: "clubmerch",
+        club_name: selectedClub,
+        image_url: formData.image_url,
+        status: "active"
+      });
+
+      if (error) throw error;
+
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setSaveSuccess(false);
+        navigate("/clubmerch");
+      }, 1200);
+
+    } catch (error) {
+      console.error("Error creating club merchandise:", error);
+      alert("Failed to create listing.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -147,26 +214,39 @@ export function ClubMerchAdminCreate() {
                   <div className={`upload-zone ${imageUploaded ? 'uploaded' : ''}`}>
                     {!imageUploaded ? (
                       <div className="upload-content">
-                        <div className="upload-icon"><Upload className="h-16 w-16 text-blue-500" /></div>
+                        <div className="upload-icon">
+                          {isUploading ? <Loader2 className="h-16 w-16 text-blue-500 animate-spin" /> : <Upload className="h-16 w-16 text-blue-500" />}
+                        </div>
                         <div>
-                          <p className="font-medium">Upload an image</p>
+                          <p className="font-medium">{isUploading ? "Uploading..." : "Upload an image"}</p>
                           <p className="text-sm text-gray-500">Supported JPG/PNG, maximum 10MB.</p>
                         </div>
+                        <input type="file" accept="image/*" className="hidden" id="club-image-upload" onChange={handleImageUpload} disabled={isUploading} />
+                        <label htmlFor="club-image-upload" className={`mt-4 inline-flex cursor-pointer items-center rounded-md px-4 py-2 text-white ${isUploading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                          <ImageIcon className="h-4 w-4 mr-2" /> Choose File
+                        </label>
                       </div>
                     ) : (
-                      <div className="text-sm text-green-700">Image selected and ready to submit.</div>
+                      <div className="text-center">
+                        <img src={formData.image_url} alt="Club merch preview" className="h-32 object-contain mx-auto mb-2 rounded-md border" />
+                        <div className="text-sm text-green-700 font-medium">Image uploaded successfully!</div>
+                      </div>
                     )}
-                    <input type="file" accept="image/*" className="hidden" id="club-image-upload" onChange={handleImageUpload} />
-                    <label htmlFor="club-image-upload" className="mt-4 inline-flex cursor-pointer items-center rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                      <ImageIcon className="h-4 w-4 mr-2" /> Upload Image
-                    </label>
                   </div>
                 </div>
               </div>
 
               <div className="flex justify-end">
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                  Publish Club Merchandise
+                <Button 
+                  type="submit" 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={isSubmitting || !imageUploaded || !formData.title || !selectedClub || !formData.category || !formData.price}
+                >
+                  {isSubmitting ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Publishing...</>
+                  ) : (
+                    "Publish Club Merchandise"
+                  )}
                 </Button>
               </div>
             </form>
