@@ -44,17 +44,23 @@ export function LostAndFoundPage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Megaphone className="text-blue-600" />
-              Lost & Found
-            </h1>
-            <p className="text-gray-600">Help your fellow students recover their belongings.</p>
-          </div>
-          <Button className="bg-blue-600 hover:bg-blue-700 h-11" onClick={() => navigate('/reportlostfound')}>
+    <div className="lostfound-container">
+      {/* Floating decorative shapes */}
+      <div className="profile-shape-1"></div>
+      <div className="profile-shape-2"></div>
+      <div className="profile-shape-3"></div>
+
+      {/* Hero Section */}
+      <div className="lostfound-hero">
+        <div className="hero-content">
+          <h1 className="hero-title">Lost & Found</h1>
+          <p className="hero-subtitle">Help your fellow students recover their belongings</p>
+        </div>
+      </div>
+
+      <div className="lostfound-content pb-20">
+        <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 mb-8">
+          <Button className="bg-blue-600 hover:bg-blue-700 h-11 shadow-lg" onClick={() => navigate('/reportlostfound')}>
             <PlusCircle className="h-4 w-4 mr-2" />
             Report Lost/Found
           </Button>

@@ -90,14 +90,23 @@ export function ClubMerchPage() {
   }, {} as Record<string, Product[]>);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Club Merchandise</h1>
-            <p className="text-gray-600">Support your favorite student clubs with exclusive merchandise</p>
-          </div>
-          <Button variant="outline" onClick={() => navigate('/clubmerchcreate')}>
+    <div className="clubmerch-container">
+      {/* Floating decorative shapes */}
+      <div className="profile-shape-1"></div>
+      <div className="profile-shape-2"></div>
+      <div className="profile-shape-3"></div>
+
+      {/* Hero Section */}
+      <div className="clubmerch-hero">
+        <div className="hero-content">
+          <h1 className="hero-title">Club Merchandise</h1>
+          <p className="hero-subtitle">Support your favorite student clubs with exclusive merchandise</p>
+        </div>
+      </div>
+
+      <div className="clubmerch-content pb-20">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
+          <Button variant="outline" className="bg-white/80 backdrop-blur-sm" onClick={() => navigate('/clubmerchcreate')}>
             Create Club Merchandise
           </Button>
         </div>
