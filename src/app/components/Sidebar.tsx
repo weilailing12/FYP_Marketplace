@@ -65,8 +65,8 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
             <Button
               onClick={async () => {
                 await supabase.auth.signOut();
-                navigate('/login');
-                onToggle();
+                // Force a full page reload to reset the isLoggedIn state in App.tsx
+                window.location.href = '/login';
               }}
               variant="ghost"
               className="w-full justify-start text-left text-red-600 hover:bg-red-50 hover:text-red-700"
