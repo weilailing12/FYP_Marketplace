@@ -12,6 +12,7 @@ export function ProductDetails() {
   const { productId } = useParams();
   const [product, setProduct] = useState<any>(null);
   const [seller, setSeller] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,6 +20,10 @@ export function ProductDetails() {
       if (!productId) return;
       
       try {
+        // Fetch current logged in user
+        const { data: { user } } = await supabase.auth.getUser();
+        setCurrentUser(user);
+
         // 1. Fetch the exact product that was clicked
         const { data: productData, error: productError } = await supabase
           .from('products')
@@ -81,15 +86,17 @@ export function ProductDetails() {
           Back
         </button>
 
-        {/* Edit Button - ideally this is only shown if the current user is the owner */}
-        <Button 
-          variant="outline" 
-          onClick={() => navigate(`/edit/${product.id}`)}
-          className="text-blue-600 border-blue-200 hover:bg-blue-50"
-        >
-          <Edit2 className="w-4 h-4 mr-2" />
-          Edit Listing
-        </Button>
+        {/* Edit Button - only shown if the current user is the owner */}
+        {currentUser?.id === product.seller_id && (
+          <Button 
+            variant="outline" 
+            onClick={() => navigate(`/edit/${product.id}`)}
+            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+          >
+            <Edit2 className="w-4 h-4 mr-2" />
+            Edit Listing
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
