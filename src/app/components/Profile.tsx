@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { supabase } from "../../supabase";
 import {
   Form,
   FormControl,
@@ -23,12 +24,13 @@ import {
 } from "./ui/form";
 
 const profileSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Please enter a valid email"),
-  phone: z.string().min(1, "Phone number is required"),
-  university: z.string().min(1, "University is required"),
-  course: z.string().min(1, "Course is required"),
-  bio: z.string().max(500, "Bio cannot exceed 500 characters"),
+  name: z.string(),
+  student_id: z.string(),
+  email: z.string().email(),
+  phone: z.string().optional().or(z.literal("")),
+  university: z.string().optional().or(z.literal("")),
+  course: z.string().optional().or(z.literal("")),
+  bio: z.string().max(500, "Bio cannot exceed 500 characters").optional().or(z.literal("")),
 });
 
 const settingsSchema = z.object({
@@ -48,18 +50,57 @@ export function Profile() {
   const navigate = useNavigate();
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: "John Doe",
-      email: "johndoe@university.edu",
-      phone: "+60123456789",
-      university: "University of Malaya",
-      course: "computer-science",
-      bio: "Engineering student passionate about tech and sustainability.",
+      name: "",
+      student_id: "",
+      email: "",
+      phone: "",
+      university: "",
+      course: "",
+      bio: "",
     },
   });
+
+  useEffect(() => {
+    async function loadProfile() {
+      setIsLoadingProfile(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate("/login");
+        return;
+      }
+      
+      setUserId(session.user.id);
+
+      // Fetch from profiles table
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileData && !error) {
+        profileForm.reset({
+          name: profileData.full_name || "",
+          student_id: profileData.student_id || "",
+          email: session.user.email || "", // Email from auth session
+          phone: profileData.phone || "",
+          university: profileData.university || "",
+          course: profileData.course || "",
+          bio: profileData.bio || "",
+        });
+      }
+      setIsLoadingProfile(false);
+    }
+
+    loadProfile();
+  }, [navigate, profileForm]);
 
   const settingsForm = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
@@ -75,11 +116,26 @@ export function Profile() {
   });
 
   const onProfileSubmit = async (data: ProfileFormValues) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    console.log("Profile updated:", data);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
+    if (!userId) return;
+    
+    // Update Supabase profiles table
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        phone: data.phone,
+        university: data.university,
+        course: data.course,
+        bio: data.bio
+      })
+      .eq('id', userId);
+
+    if (!error) {
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } else {
+      console.error("Failed to update profile", error);
+      alert("Failed to update profile.");
+    }
   };
 
   const onSettingsSubmit = async (data: SettingsFormValues) => {
@@ -141,65 +197,84 @@ export function Profile() {
                   </Alert>
                 )}
 
-                <Form {...profileForm}>
-                  <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField
-                        control={profileForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="form-label">Full Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter your full name" className="form-input" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                {isLoadingProfile ? (
+                  <div className="flex justify-center p-8 text-gray-500">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                ) : (
+                  <Form {...profileForm}>
+                    <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                          control={profileForm.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="form-label text-gray-400">Full Name (Verified)</FormLabel>
+                              <FormControl>
+                                <Input className="form-input bg-gray-50 cursor-not-allowed" readOnly {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                      <FormField
-                        control={profileForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="form-label">Email Address</FormLabel>
-                            <FormControl>
-                              <Input placeholder="your.email@university.edu" type="email" className="form-input" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                        <FormField
+                          control={profileForm.control}
+                          name="student_id"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="form-label text-gray-400">Student ID (Verified)</FormLabel>
+                              <FormControl>
+                                <Input className="form-input bg-gray-50 cursor-not-allowed" readOnly {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                      <FormField
-                        control={profileForm.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="form-label">Phone Number</FormLabel>
-                            <FormControl>
-                              <Input placeholder="+60123456789" type="tel" className="form-input" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                        <FormField
+                          control={profileForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="form-label text-gray-400">Email Address</FormLabel>
+                              <FormControl>
+                                <Input type="email" className="form-input bg-gray-50 cursor-not-allowed" readOnly {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                      <FormField
-                        control={profileForm.control}
-                        name="university"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="form-label">University</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Your university name" className="form-input" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                        <FormField
+                          control={profileForm.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="form-label">Phone Number</FormLabel>
+                              <FormControl>
+                                <Input placeholder="+60123456789" type="tel" className="form-input" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={profileForm.control}
+                          name="university"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="form-label">University</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Your university name" className="form-input" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
                     <FormField
                       control={profileForm.control}
@@ -278,6 +353,7 @@ export function Profile() {
                     </div>
                   </form>
                 </Form>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
