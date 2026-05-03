@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../../supabase";
 
 // Defined the Props to match your App.tsx logic
 interface LoginPageProps {
@@ -11,11 +11,30 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // For FYP demo purposes, we call the login handler
-    onLogin();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      // Successfully logged in
+      onLogin();
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError(err.message || "Failed to login. Please check your credentials.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -23,6 +42,12 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
       <div className="login-card">
         <h2 className="login-title">CampusTrade</h2>
         <p className="login-subtitle">University Marketplace</p>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm text-center">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
@@ -49,8 +74,8 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
             />
           </div>
 
-          <button type="submit" className="login-button">
-            Login
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
