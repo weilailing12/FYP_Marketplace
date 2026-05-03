@@ -105,11 +105,6 @@ export function ClubMerchPage() {
       </div>
 
       <div className="clubmerch-content pb-20">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
-          <Button variant="outline" className="bg-white/80 backdrop-blur-sm" onClick={() => navigate('/clubmerchcreate')}>
-            Create Club Merchandise
-          </Button>
-        </div>
 
         {/* Filter Bar */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">

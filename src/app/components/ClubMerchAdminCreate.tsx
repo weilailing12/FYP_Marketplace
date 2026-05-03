@@ -25,6 +25,7 @@ export function ClubMerchAdminCreate() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [selectedClub, setSelectedClub] = useState<string>("");
+  const [customClub, setCustomClub] = useState<string>("");
   const [formData, setFormData] = useState({
     title: "",
     category: "",
@@ -76,6 +77,10 @@ export function ClubMerchAdminCreate() {
       alert("Please select a club first!");
       return;
     }
+    if (selectedClub === "other" && !customClub.trim()) {
+      alert("Please enter the custom club name!");
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -90,6 +95,8 @@ export function ClubMerchAdminCreate() {
         return;
       }
 
+      const finalClubName = selectedClub === "other" ? customClub.trim() : selectedClub;
+
       const { error } = await supabase.from('products').insert({
         seller_id: sellerId,
         title: formData.title,
@@ -97,7 +104,7 @@ export function ClubMerchAdminCreate() {
         price: parseFloat(formData.price),
         category: formData.category,
         product_type: "clubmerch",
-        club_name: selectedClub,
+        club_name: finalClubName,
         image_url: formData.image_url,
         status: "active"
       });
@@ -149,9 +156,24 @@ export function ClubMerchAdminCreate() {
                       {clubOptions.map((club) => (
                         <SelectItem key={club.value} value={club.value}>{club.label}</SelectItem>
                       ))}
+                      <SelectItem value="other">Other (Type your own)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {selectedClub === "other" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="customClub" className="form-label">New Club Name</Label>
+                    <Input
+                      id="customClub"
+                      placeholder="e.g., Debate"
+                      value={customClub}
+                      onChange={(e) => setCustomClub(e.target.value)}
+                      required
+                      className="form-input"
+                    />
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
