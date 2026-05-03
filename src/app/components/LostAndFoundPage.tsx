@@ -9,8 +9,10 @@ import { useNavigate } from "react-router-dom";
 
 interface LostFoundItem {
   id: string;
-  type: "lost" | "found";
-  title: string;
+  type?: "lost" | "found";
+  item_type?: "lost" | "found";
+  title?: string;
+  item_name?: string;
   location: string;
   date: string;
   image_url: string;
@@ -99,13 +101,13 @@ export function LostAndFoundPage() {
             </TabsContent>
             
             <TabsContent value="lost" className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {items.filter(i => i.type === 'lost').map((item) => (
+              {items.filter(i => (i.type || i.item_type) === 'lost').map((item) => (
                 <LostFoundCard key={item.id} item={item} />
               ))}
             </TabsContent>
 
             <TabsContent value="found" className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {items.filter(i => i.type === 'found').map((item) => (
+              {items.filter(i => (i.type || i.item_type) === 'found').map((item) => (
                 <LostFoundCard key={item.id} item={item} />
               ))}
             </TabsContent>
@@ -124,7 +126,7 @@ function LostFoundCard({ item }: { item: LostFoundItem }) {
       <div className="flex h-44">
         <div className="w-1/3 bg-gray-100 flex items-center justify-center overflow-hidden relative">
           {item.image_url ? (
-            <img src={item.image_url} className="w-full h-full object-cover" alt={item.title} />
+            <img src={item.image_url} className="w-full h-full object-cover" alt={item.title || item.item_name} />
           ) : (
             <span className="text-gray-400 text-xs">No Image</span>
           )}
@@ -132,9 +134,9 @@ function LostFoundCard({ item }: { item: LostFoundItem }) {
         <CardContent className="flex-1 p-4 flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-start mb-1">
-              <h3 className="font-bold text-lg leading-tight line-clamp-1">{item.title}</h3>
-              <Badge className={item.type === 'lost' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
-                {item.type.toUpperCase()}
+              <h3 className="font-bold text-lg leading-tight line-clamp-1">{item.title || item.item_name}</h3>
+              <Badge className={(item.type || item.item_type) === 'lost' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
+                {(item.type || item.item_type || 'unknown').toUpperCase()}
               </Badge>
             </div>
             <div className="space-y-1 mt-2">

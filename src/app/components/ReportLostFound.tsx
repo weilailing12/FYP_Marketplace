@@ -83,7 +83,8 @@ export function ReportLostFound() {
 
       // 2. Insert into lost_and_found table
       const { error: insertError } = await supabase.from('lost_and_found').insert({
-        type: itemType,
+        type: itemType,          // The column I added
+        item_type: itemType,     // The column your database originally had
         title: formData.name,
         location: formData.venue,
         date: formData.date,
