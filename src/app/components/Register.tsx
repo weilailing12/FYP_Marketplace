@@ -59,7 +59,11 @@ export const Register = () => {
           studentId = match[0];
           // On this specific ID card, the name is usually the line right above the ID
           if (i > 0) {
-            name = lines[i - 1];
+            // Remove punctuation and numbers which often get accidentally scanned before the name
+            name = lines[i - 1].replace(/[^A-Za-z\s]/g, '').trim();
+            
+            // Clean up multiple spaces
+            name = name.replace(/\s+/g, ' ');
           }
           break;
         }
@@ -163,9 +167,9 @@ export const Register = () => {
           <input
             type="text"
             value={formData.name}
-            readOnly
-            style={{ backgroundColor: "#f3f4f6", cursor: "not-allowed", display: "block", width: "100%", marginBottom: "10px" }}
-            placeholder="Please upload your ID card to auto-fill"
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            style={{ display: "block", width: "100%", marginBottom: "10px" }}
+            placeholder="Please upload your ID card to auto-fill (editable if incorrect)"
           />
 
           <label>Student ID Status</label>
