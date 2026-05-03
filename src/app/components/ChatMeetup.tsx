@@ -1,30 +1,31 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Label } from "./ui/label";
-import { Send, MapPin, Navigation, Paperclip, X, Calendar, Clock } from "lucide-react";
+import { Send, MapPin, Paperclip, X, Calendar, Clock } from "lucide-react";
 import { Badge } from "./ui/badge";
+import { supabase } from "../../supabase";
+import { useNavigate, useParams } from "react-router-dom";
 
 interface Message {
   id: string;
-  sender: "me" | "other";
+  sender_id: string;
+  receiver_id: string;
   text: string;
-  timestamp: string;
-  imageUrl?: string;
-  isMeetupProposal?: boolean; 
+  image_url?: string;
+  is_meetup_proposal?: boolean;
+  created_at: string;
 }
-
-import { useNavigate } from "react-router-dom";
 
 export function ChatMeetup() {
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<Message[]>([
-    { id: "1", sender: "other", text: "Hi! Is this MacBook still available?", timestamp: "10:30 AM" },
-    { id: "2", sender: "me", text: "Yes, it's still available! Are you interested?", timestamp: "10:32 AM" },
-  ]);
+  const { sellerId } = useParams();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [sellerName, setSellerName] = useState("Loading...");
 
   const [showMeetupModal, setShowMeetupModal] = useState(false);
   const [meetupType, setMeetupType] = useState("pickup");
@@ -34,34 +35,116 @@ export function ChatMeetup() {
   const [inputText, setInputText] = useState("");
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // ---> THIS IS THE CRITICAL FUNCTION THAT WAS MISSING! <---
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      setAttachedImage(previewUrl);
+  // 1. Initialize Auth and Fetch Messages
+  useEffect(() => {
+    async function initChat() {
+      // Get current user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert("Please login to chat.");
+        navigate("/login");
+        return;
+      }
+      setCurrentUserId(session.user.id);
+
+      if (!sellerId) return;
+
+      // Fetch Seller Name
+      const { data: sellerData } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", sellerId)
+        .single();
+      if (sellerData) setSellerName(sellerData.full_name);
+
+      // Fetch Chat History
+      const { data: chatHistory, error } = await supabase
+        .from("messages")
+        .select("*")
+        .or(`and(sender_id.eq.${session.user.id},receiver_id.eq.${sellerId}),and(sender_id.eq.${sellerId},receiver_id.eq.${session.user.id})`)
+        .order("created_at", { ascending: true });
+
+      if (error) console.error("Error fetching messages:", error);
+      if (chatHistory) setMessages(chatHistory);
     }
-  };
-  // ---------------------------------------------------------
+    initChat();
+  }, [sellerId, navigate]);
 
-  const handleSendMessage = (textOverride?: string, isProposal = false) => {
-    const textToSend = textOverride || inputText;
-    if (!textToSend.trim() && !attachedImage) return;
+  // 2. Setup Supabase Realtime Subscription
+  useEffect(() => {
+    if (!currentUserId || !sellerId) return;
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      sender: "me",
-      text: textToSend,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      imageUrl: attachedImage || undefined,
-      isMeetupProposal: isProposal
+    const channel = supabase
+      .channel("chat_room")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+        },
+        (payload) => {
+          const newMsg = payload.new as Message;
+          // Only append if it belongs to this conversation
+          if (
+            (newMsg.sender_id === currentUserId && newMsg.receiver_id === sellerId) ||
+            (newMsg.sender_id === sellerId && newMsg.receiver_id === currentUserId)
+          ) {
+            setMessages((prev) => [...prev, newMsg]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
     };
+  }, [currentUserId, sellerId]);
 
-    setMessages([...messages, newMessage]);
-    setInputText("");
-    setAttachedImage(null);
-    setShowMeetupModal(false);
+  // 3. Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // For demo purposes, we will just use local preview and upload it as a data URL,
+    // or upload to a storage bucket if you prefer. To keep it simple, we use createObjectURL here,
+    // but in production, you MUST upload `file` to `supabase.storage` and get a public URL!
+    const previewUrl = URL.createObjectURL(file);
+    setAttachedImage(previewUrl);
+  };
+
+  const handleSendMessage = async (textOverride?: string, isProposal = false) => {
+    const textToSend = textOverride || inputText;
+    if ((!textToSend.trim() && !attachedImage) || !currentUserId || !sellerId) return;
+
+    // Optional: Upload `attachedImage` file to supabase storage here if it's a real file.
+    
+    try {
+      const { error } = await supabase.from("messages").insert({
+        sender_id: currentUserId,
+        receiver_id: sellerId,
+        text: textToSend,
+        image_url: attachedImage || null,
+        is_meetup_proposal: isProposal
+      });
+
+      if (error) throw error;
+
+      setInputText("");
+      setAttachedImage(null);
+      setShowMeetupModal(false);
+    } catch (err) {
+      console.error("Failed to send message", err);
+      alert("Failed to send message. Please check your connection.");
+    }
   };
 
   const confirmMeetup = () => {
@@ -132,30 +215,38 @@ export function ChatMeetup() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-220px)]">
           {/* Chat Side */}
-          <Card className="flex flex-col">
+          <Card className="flex flex-col h-full">
             <CardHeader className="border-b">
               <div className="flex items-center gap-3">
-                <Avatar><AvatarFallback className="bg-blue-600 text-white">SC</AvatarFallback></Avatar>
+                <Avatar><AvatarFallback className="bg-blue-600 text-white">{sellerName.charAt(0)}</AvatarFallback></Avatar>
                 <div>
-                  <CardTitle className="text-lg">Sarah Chen</CardTitle>
+                  <CardTitle className="text-lg">{sellerName}</CardTitle>
                   <p className="text-sm text-gray-500">Active now</p>
                 </div>
               </div>
             </CardHeader>
             
-            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((m) => (
-                <div key={m.id} className={`flex ${m.sender === "me" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                    m.isMeetupProposal ? "bg-green-50 border-2 border-green-200 text-green-900" : 
-                    m.sender === "me" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-900"
-                  }`}>
-                    {m.imageUrl && <img src={m.imageUrl} className="w-full rounded-md mb-2" alt="attachment" />}
-                    <p className="whitespace-pre-line">{m.text}</p>
-                    <p className="text-[10px] mt-1 opacity-70">{m.timestamp}</p>
-                  </div>
+            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
+              {messages.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-gray-400">
+                  <p>Start the conversation! Say hi 👋</p>
                 </div>
-              ))}
+              ) : (
+                messages.map((m) => (
+                  <div key={m.id} className={`flex ${m.sender_id === currentUserId ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                      m.is_meetup_proposal ? "bg-green-50 border-2 border-green-200 text-green-900" : 
+                      m.sender_id === currentUserId ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-900"
+                    }`}>
+                      {m.image_url && <img src={m.image_url} className="w-full rounded-md mb-2 object-cover" alt="attachment" />}
+                      <p className="whitespace-pre-line break-words">{m.text}</p>
+                      <p className="text-[10px] mt-1 opacity-70">
+                        {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
               <div className="flex justify-center py-4">
                 <Button onClick={() => setShowMeetupModal(true)} variant="outline" className="border-blue-600 text-blue-600">
                   <Calendar className="h-4 w-4 mr-2" /> Propose Meetup / Reservation
@@ -166,7 +257,7 @@ export function ChatMeetup() {
             <div className="p-4 border-t bg-white">
               {attachedImage && (
                 <div className="mb-3 relative inline-block">
-                  <img src={attachedImage} className="h-20 w-20 object-cover rounded-md" alt="preview" />
+                  <img src={attachedImage} className="h-20 w-20 object-cover rounded-md border" alt="preview" />
                   <button onClick={() => setAttachedImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><X className="h-3 w-3" /></button>
                 </div>
               )}
@@ -180,14 +271,14 @@ export function ChatMeetup() {
           </Card>
 
           {/* Map Side (UTAR Kampar Mockup) */}
-          <Card className="hidden lg:block">
+          <Card className="hidden lg:block h-full">
             <CardHeader><CardTitle>UTAR Kampar Safe Meetup Zones</CardTitle></CardHeader>
-            <CardContent className="p-0 relative h-[500px] bg-blue-50/50">
+            <CardContent className="p-0 relative h-[calc(100%-80px)] bg-blue-50/50">
                <div className="absolute inset-0 flex items-center justify-center text-gray-400">
                   <div className="text-center p-10 border-2 border-dashed border-gray-300 rounded-xl">
                     <MapPin className="h-12 w-12 mx-auto mb-2 opacity-20" />
                     <p>Interactive Campus Map View</p>
-                    <Badge variant="outline" className="mt-2">Kampar Campus</Badge>
+                    <Badge variant="outline" className="mt-2 bg-white">Kampar Campus</Badge>
                   </div>
                </div>
             </CardContent>

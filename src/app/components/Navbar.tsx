@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -10,6 +10,7 @@ export function Navbar() {
   const location = useLocation();
   
   const [localQuery, setLocalQuery] = useState(searchParams.get("q") || "");
+  const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Keep local query in sync with URL if URL changes
   useEffect(() => {
@@ -20,9 +21,15 @@ export function Navbar() {
     const query = e.target.value;
     setLocalQuery(query);
     
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
     // Live search ONLY if we are already on a searchable page
     if (location.pathname === '/marketplace' || location.pathname === '/clubmerch') {
-      setSearchParams(query ? { q: query } : {}, { replace: true });
+      debounceTimerRef.current = setTimeout(() => {
+        setSearchParams(query ? { q: query } : {}, { replace: true });
+      }, 300);
     }
   };
 

@@ -157,7 +157,11 @@ export function ProductDetails() {
                 </div>
                 
                 {/* Notice how clicking this goes to your chat page! */}
-                <Button onClick={() => navigate('/chat')} className="bg-blue-600 hover:bg-blue-700">
+                <Button 
+                  onClick={() => navigate(seller?.id ? `/chat/${seller.id}` : '#')} 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={!seller}
+                >
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Chat
                 </Button>
