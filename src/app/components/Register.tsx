@@ -43,17 +43,49 @@ export const Register = () => {
       const text = result.data.text.toUpperCase();
       console.log("OCR Result:", text);
       
-      // Basic verification: Check if it looks like a student ID
-      // You can adjust these keywords to match your university's actual ID card text
-      if (text.includes("STUDENT") || text.includes("UNIVERSITY") || text.includes("ID")) {
+      // Split text into lines to process it similarly to the python backend
+      const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+      let studentId = "";
+      let name = "";
+
+      // 1. Look for the UTAR ID format (e.g., 22ACB07233)
+      // Regex explanation: 2 digits, 3 letters, 5 digits
+      const idPattern = /\d{2}[A-Z]{3}\d{5}/;
+
+      for (let i = 0; i < lines.length; i++) {
+        const match = lines[i].match(idPattern);
+        if (match) {
+          studentId = match[0];
+          // On this specific ID card, the name is usually the line right above the ID
+          if (i > 0) {
+            name = lines[i - 1];
+          }
+          break;
+        }
+      }
+
+      // 2. Fallback: if it didn't find the alphanumeric one, look for the 7-digit one under the barcode
+      if (!studentId) {
+        const backupPattern = /\b\d{7}\b/;
+        for (let i = 0; i < lines.length; i++) {
+          const backupMatch = lines[i].match(backupPattern);
+          if (backupMatch) {
+            studentId = backupMatch[0];
+            break;
+          }
+        }
+      }
+
+      if (studentId) {
         setFormData({
           ...formData,
-          name: "Verified Student", // Real OCR parsing of names is complex, we just set a default for demo
-          studentId: "VALID-ID-SCANNED" 
+          name: name || "Verified Student", 
+          studentId: studentId 
         });
         setOcrProgress("ID Verified Successfully!");
       } else {
-        setError("Could not detect Student ID keywords in the image. Please upload a clearer photo.");
+        setError("Could not detect a valid Student ID in the image. Please upload a clearer photo.");
         setOcrProgress("");
       }
     } catch (e) {
