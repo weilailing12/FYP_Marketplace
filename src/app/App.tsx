@@ -6,7 +6,6 @@ import { MarketplaceFeed } from "./components/MarketplaceFeed";
 import { ProductDetails } from "./components/ProductDetails";
 import { CreateListing } from "./components/CreateListing";
 import { ChatMeetup } from "./components/ChatMeetup";
-import { Dashboard } from "./components/Dashboard";
 import { Profile } from "./components/Profile";
 import { ClubMerchPage } from "./components/ClubMerchPage";
 import { ClubMerchAdminCreate } from "./components/ClubMerchAdminCreate";
@@ -59,7 +58,6 @@ export default function App() {
             <Route path="/chat" element={<ChatMeetup />} />
             <Route path="/clubmerch/admin" element={<ClubMerchAdminDashboard />} />
             <Route path="/clubmerchcreate" element={<ClubMerchAdminCreate />} />
-            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/clubmerch" element={<ClubMerchPage />} />
             <Route path="/lostfound" element={<LostAndFoundPage />} />
