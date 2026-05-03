@@ -88,6 +88,7 @@ export function ReportLostFound() {
         title: formData.name,
         location: formData.venue,
         date: formData.date,
+        incident_date: formData.date, // The column your database originally had for dates
         description: formData.description,
         image_url: imageUrl,
         reporter_id: userId
