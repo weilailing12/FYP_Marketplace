@@ -2,6 +2,7 @@ import { Button } from "./ui/button";
 import { cn } from "./ui/utils";
 import { Menu, X } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "../../supabase";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -38,7 +39,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="p-6 pt-16">
-          <nav className="space-y-2">
+          <nav className="space-y-2 flex-1">
             {menuItems.map((item) => (
               <Button
                 key={item.page}
@@ -59,6 +60,21 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
               </Button>
             ))}
           </nav>
+          
+          <div className="mt-8 border-t pt-4">
+            <Button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate('/login');
+                onToggle();
+              }}
+              variant="ghost"
+              className="w-full justify-start text-left text-red-600 hover:bg-red-50 hover:text-red-700"
+            >
+              <span className="mr-3">🚪</span>
+              Logout
+            </Button>
+          </div>
         </div>
       </div>
 
