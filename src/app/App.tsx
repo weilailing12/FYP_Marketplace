@@ -15,6 +15,7 @@ import { ReportLostFound } from "./components/ReportLostFound";
 import { Sidebar } from "./components/Sidebar";
 import { Navbar } from "./components/Navbar";
 import { EditProduct } from "./components/EditProduct";
+import { AdminDashboard } from "./components/AdminDashboard";
 import { supabase } from "../supabase";
 
 export default function App() {
@@ -88,6 +89,7 @@ export default function App() {
             <Route path="/lostfound" element={<LostAndFoundPage />} />
             <Route path="/reportlostfound" element={<ReportLostFound />} />
             <Route path="*" element={<Navigate to="/marketplace" replace />} />
+            <Route path="/admin" element={<AdminDashboard />} />
           </Routes>
         </main>
 
