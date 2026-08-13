@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Users, Package, Megaphone, ShieldAlert, EyeOff, Eye, Loader2, Store, Plus, Edit } from "lucide-react";
+import { Users, Package, Megaphone, ShieldAlert, EyeOff, Eye, Loader2, Plus, Edit } from "lucide-react";
 import { supabase } from "../../supabase";
 import { useNavigate } from "react-router-dom";
 
@@ -225,7 +225,7 @@ export function AdminDashboard() {
   }
 
   // Calculate Metrics
-  const activeProducts = products.filter(p => p.status === 'active').length;
+  const secondHandProducts = products.filter(p => p.product_type !== 'clubmerch' && p.status === 'active').length;
   const clubMerchCount = products.filter(p => p.product_type === 'clubmerch').length;
 
   return (
@@ -245,7 +245,6 @@ export function AdminDashboard() {
           <TabsTrigger value="products">Listing Moderation</TabsTrigger>
           <TabsTrigger value="clubmerch">Club Merchandise</TabsTrigger>
           <TabsTrigger value="announcements">Announcements</TabsTrigger>
-          <TabsTrigger value="actions">System Actions</TabsTrigger>
         </TabsList>
 
         {/* TAB 1: System Overview (Metrics) */}
@@ -264,8 +263,8 @@ export function AdminDashboard() {
               <CardContent className="p-6 flex items-center space-x-4">
                 <div className="p-4 bg-green-100 rounded-full text-green-600"><Package className="h-8 w-8" /></div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Active Listings</p>
-                  <h3 className="text-3xl font-bold text-gray-900">{activeProducts}</h3>
+                  <p className="text-sm font-medium text-gray-500">Active Second-Hand Items</p>
+                  <h3 className="text-3xl font-bold text-gray-900">{secondHandProducts}</h3>
                 </div>
               </CardContent>
             </Card>
@@ -325,7 +324,7 @@ export function AdminDashboard() {
         {/* TAB 3: Product Moderation */}
         <TabsContent value="products">
           <Card>
-            <CardHeader><CardTitle>Marketplace Moderation</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Listing Moderation - Second-Hand Products</CardTitle></CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
@@ -341,12 +340,9 @@ export function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {products.map(product => (
+                    {products.filter(p => p.product_type !== 'clubmerch').map(product => (
                       <tr key={product.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
-                          
-                          {console.log("FINAL URL FOR RENDER:", getFirstImageUrl(product.image_urls))}
-
                           <img
                             src={getFirstImageUrl(product.image_urls)}
                             alt={product.title}
@@ -468,39 +464,6 @@ export function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {/* TAB 6: Quick Actions */}
-        <TabsContent value="actions">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="hover:shadow-md transition-shadow border-blue-100">
-              <CardHeader>
-                <CardTitle className="flex items-center text-blue-700">
-                  <Store className="h-5 w-5 mr-2" /> Quick Access
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">Fast access to club merchandise creation.</p>
-                <Button onClick={() => navigate('/clubmerchcreate')} className="w-full bg-blue-600 hover:bg-blue-700">
-                  Create Club Merch Item
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-shadow border-purple-100">
-              <CardHeader>
-                <CardTitle className="flex items-center text-purple-700">
-                  <Megaphone className="h-5 w-5 mr-2" /> Announcements
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">Manage and post announcements to the platform.</p>
-                <Button variant="outline" className="w-full border-purple-200 text-purple-700 hover:bg-purple-50" disabled>
-                  Coming Soon
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
 
       </Tabs>

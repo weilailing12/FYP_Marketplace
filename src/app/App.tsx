@@ -9,7 +9,6 @@ import { ChatMeetup } from "./components/ChatMeetup";
 import { Profile } from "./components/Profile";
 import { ClubMerchPage } from "./components/ClubMerchPage";
 import { ClubMerchAdminCreate } from "./components/ClubMerchAdminCreate";
-import { ClubMerchAdminDashboard } from "./components/ClubMerchAdminDashboard";
 import { LostAndFoundPage } from "./components/LostAndFoundPage";
 import { ReportLostFound } from "./components/ReportLostFound";
 import { Sidebar } from "./components/Sidebar";
@@ -83,7 +82,7 @@ export default function App() {
             <Route path="/edit/:productId" element={<EditProduct />} />
             <Route path="/create" element={<CreateListing />} />
             <Route path="/chat/:sellerId" element={<ChatMeetup />} />
-            <Route path="/clubmerch/admin" element={<ClubMerchAdminDashboard />} />
+            <Route path="/clubmerch/admin" element={<Navigate to="/admin" replace />} />
             <Route path="/clubmerchcreate" element={<ClubMerchAdminCreate />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/clubmerch" element={<ClubMerchPage />} />
