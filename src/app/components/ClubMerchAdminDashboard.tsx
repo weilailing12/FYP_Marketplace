@@ -10,7 +10,7 @@ interface Product {
   id: string;
   title: string;
   price: number;
-  image_urls?: string[]; // CHANGED: array type
+  image_urls?: any;
   category: string;
   status: string;
   club_name?: string;
@@ -86,13 +86,19 @@ export function ClubMerchAdminDashboard() {
                 <div className="flex items-center p-4">
                   <div className="h-20 w-20 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                     {/* CHANGED: Pulling first image from array */}
-                    <img 
-                      src={product.image_urls && product.image_urls.length > 0 ? product.image_urls[0] : "https://via.placeholder.com/400"} 
+                    <img
+                      src={
+                        Array.isArray(product.image_urls)
+                          ? product.image_urls[0]
+                          : typeof product.image_urls === 'string' && product.image_urls.includes(',')
+                            ? product.image_urls.split(',')[0].trim()
+                            : product.image_urls || "https://via.placeholder.com/400"
+                      }
                       alt={product.title}
                       className="h-full w-full object-cover"
                     />
                   </div>
-                  
+
                   <div className="ml-4 flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant="outline" className="text-blue-700 bg-blue-50 border-blue-200">{product.club_name || "Unknown Club"}</Badge>
@@ -101,7 +107,7 @@ export function ClubMerchAdminDashboard() {
                     <h3 className="font-semibold text-lg text-gray-900 line-clamp-1">{product.title}</h3>
                     <p className="text-blue-600 font-medium">RM {product.price}</p>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <Button variant="outline" size="sm" onClick={() => navigate(`/edit/${product.id}`)}>
                       <Edit className="w-4 h-4 mr-2" /> Edit

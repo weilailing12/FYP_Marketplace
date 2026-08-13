@@ -24,11 +24,65 @@ interface ProductInfo {
   product_type: string;
   status: string;
   seller_id: string;
-  image_urls?: string;
+  image_urls?: string | string[];
   profiles?: {
     full_name: string;
   };
 }
+
+// ---------------------------------------------------------
+// 1. PLACE THE HELPER FUNCTION HERE (Outside the component)
+// ---------------------------------------------------------
+const getFirstImageUrl = (imageUrls: any): string => {
+  console.log("getFirstImageUrl input:", imageUrls, "type:", typeof imageUrls);
+  
+  if (!imageUrls) return "https://via.placeholder.com/50";
+
+  let url = "";
+
+  // Case 1: Already an array
+  if (Array.isArray(imageUrls)) {
+    url = imageUrls.length > 0 ? imageUrls[0] : "";
+  } 
+  // Case 2: String (could be JSON array, CSV, or direct URL)
+  else if (typeof imageUrls === 'string') {
+    let clean = imageUrls.trim();
+    
+    // Try to parse as JSON array first
+    if (clean.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(clean);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          url = parsed[0];
+        }
+      } catch (e) { 
+        console.warn("Failed to parse JSON array:", clean);
+      }
+    } 
+    // Try to split by comma
+    else if (clean.includes(',')) {
+      url = clean.split(',')[0].trim();
+    } 
+    // Use as direct URL
+    else {
+      url = clean;
+    }
+  }
+
+  if (!url) {
+    console.warn("No valid URL found, returning placeholder");
+    return "https://via.placeholder.com/50";
+  }
+
+  // Ensure it's a valid URL
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    console.warn("URL doesn't start with http, returning placeholder:", url);
+    return "https://via.placeholder.com/50";
+  }
+
+  console.log("Final URL:", url);
+  return url;
+};
 
 export function AdminDashboard() {
   const navigate = useNavigate();
@@ -64,7 +118,10 @@ export function AdminDashboard() {
       ]);
 
       if (usersResponse.data) setUsers(usersResponse.data);
-      if (productsResponse.data) setProducts(productsResponse.data);
+      if (productsResponse.data) {
+        console.log("CHECK PRODUCTS DATA:", productsResponse.data);
+        setProducts(productsResponse.data);
+      }
 
       setLoading(false);
     }
@@ -220,10 +277,17 @@ export function AdminDashboard() {
                     {products.map(product => (
                       <tr key={product.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
+                          
+                          {console.log("FINAL URL FOR RENDER:", getFirstImageUrl(product.image_urls))}
+
                           <img
-                            src={product.image_urls || "https://via.placeholder.com/50"}
+                            src={getFirstImageUrl(product.image_urls)}
                             alt={product.title}
                             className="w-10 h-10 object-cover rounded border"
+                            onError={(e) => {
+                              console.error("IMAGE FAILED TO LOAD:", (e.target as HTMLImageElement).src);
+                              (e.target as HTMLImageElement).src = "https://via.placeholder.com/50";
+                            }}
                           />
                         </td>
                         <td className="px-4 py-3 font-medium text-gray-900 max-w-[250px] whitespace-normal break-words">

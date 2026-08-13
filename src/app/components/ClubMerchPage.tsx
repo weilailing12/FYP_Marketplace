@@ -11,7 +11,7 @@ interface Product {
   id: string;
   title: string;
   price: number;
-  image_url: string;
+  image_urls: string | string[];
   verified?: boolean;
   category: string;
   product_type: string;
@@ -20,12 +20,43 @@ interface Product {
 
 import { useNavigate, useSearchParams } from "react-router-dom";
 
+// Helper to fix Supabase storage paths into full public URLs
+const getValidImageUrl = (img: any): string => {
+  let url = "";
+  if (Array.isArray(img)) {
+    url = img.length > 0 ? img[0] : "";
+  } else if (typeof img === 'string') {
+    let clean = img.trim();
+    if (clean.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(clean);
+        if (Array.isArray(parsed) && parsed.length > 0) url = parsed[0];
+      } catch (e) { }
+    } else if (clean.includes(',')) {
+      url = clean.split(',')[0].trim();
+    } else {
+      url = clean;
+    }
+  }
+
+  if (!url) return "https://via.placeholder.com/400";
+
+  // If it's already a full web URL (including full Supabase URLs), return it as-is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+
+  // Otherwise, turn it into a full Supabase public URL 
+  // (Replace 'your-bucket-name' with your actual Supabase storage bucket name if different, 
+  // or your full supabase project URL storage endpoint)
+  return `https://zqfhctembntccxlefpry.supabase.co/storage/v1/object/public/${url}`;
+};
 export function ClubMerchPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedClub, setSelectedClub] = useState("all");
-  
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,9 +73,12 @@ export function ClubMerchPage() {
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        
+
         if (data) {
-          setProducts(data as Product[]);
+          console.log("Raw products fetched:", data);
+          console.log("First product image_urls:", data[0]?.image_urls);
+          const formattedData = data as Product[];
+          setProducts(formattedData);
         }
       } catch (error) {
         console.error("Error fetching club merchandise:", error);
@@ -155,7 +189,10 @@ export function ClubMerchPage() {
             <div key={clubName} className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">{clubName} Club</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {products.map((product) => (
+                {products.map((product) => {
+                  const imageUrl = getValidImageUrl(product.image_urls);
+                  console.log(`Product: ${product.title}, ImageUrls: `, product.image_urls, "Final URL:", imageUrl);
+                  return (
                   <Card
                     key={product.id}
                     className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
@@ -163,9 +200,14 @@ export function ClubMerchPage() {
                   >
                     <div className="relative aspect-square">
                       <img
-                        src={product.image_url}
+                        src={imageUrl}
                         alt={product.title}
                         className="object-cover w-full h-full"
+                        onError={(e) => {
+                          console.error("Image failed to load:", imageUrl);
+                          // If the image fails to load, fallback to placeholder instead of breaking
+                          (e.target as HTMLImageElement).src = "https://via.placeholder.com/400";
+                        }}
                       />
                       {product.verified && (
                         <Badge className="absolute top-2 right-2 bg-green-600 hover:bg-green-700">
@@ -182,7 +224,8 @@ export function ClubMerchPage() {
                       <p className="text-blue-600">RM {product.price}</p>
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))
