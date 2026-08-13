@@ -24,7 +24,7 @@ interface ProductInfo {
   product_type: string;
   status: string;
   seller_id: string;
-  image_url?: string;
+  image_urls?: string;
   profiles?: {
     full_name: string;
   };
@@ -221,7 +221,7 @@ export function AdminDashboard() {
                       <tr key={product.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
                           <img
-                            src={product.image_url || "https://via.placeholder.com/50"}
+                            src={product.image_urls || "https://via.placeholder.com/50"}
                             alt={product.title}
                             className="w-10 h-10 object-cover rounded border"
                           />
