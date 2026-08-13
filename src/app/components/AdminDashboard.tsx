@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Users, Package, Megaphone, ShieldAlert, EyeOff, Eye, Loader2, Store } from "lucide-react";
+import { Users, Package, Megaphone, ShieldAlert, EyeOff, Eye, Loader2, Store, Plus, Edit } from "lucide-react";
 import { supabase } from "../../supabase";
 import { useNavigate } from "react-router-dom";
 
@@ -30,8 +30,18 @@ interface ProductInfo {
   };
 }
 
+interface ClubMerchProduct {
+  id: string;
+  title: string;
+  price: number;
+  image_urls?: any;
+  category: string;
+  status: string;
+  club_name?: string;
+}
+
 // ---------------------------------------------------------
-// 1. PLACE THE HELPER FUNCTION HERE (Outside the component)
+// HELPER FUNCTION FOR MARKETPLACE IMAGES
 // ---------------------------------------------------------
 const getFirstImageUrl = (imageUrls: any): string => {
   console.log("getFirstImageUrl input:", imageUrls, "type:", typeof imageUrls);
@@ -84,11 +94,40 @@ const getFirstImageUrl = (imageUrls: any): string => {
   return url;
 };
 
+// ---------------------------------------------------------
+// HELPER FUNCTION FOR CLUB MERCH IMAGES
+// ---------------------------------------------------------
+const getClubMerchImageUrl = (imageUrls: any): string => {
+  if (!imageUrls) return "https://via.placeholder.com/400";
+
+  let url = "";
+  
+  if (Array.isArray(imageUrls)) {
+    url = imageUrls.length > 0 ? imageUrls[0] : "";
+  } else if (typeof imageUrls === 'string') {
+    let clean = imageUrls.trim();
+    if (clean.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(clean);
+        if (Array.isArray(parsed) && parsed.length > 0) url = parsed[0];
+      } catch (e) { }
+    } else if (clean.includes(',')) {
+      url = clean.split(',')[0].trim();
+    } else {
+      url = clean;
+    }
+  }
+
+  return url || "https://via.placeholder.com/400";
+};
+
+
 export function AdminDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [products, setProducts] = useState<ProductInfo[]>([]);
+  const [clubMerchProducts, setClubMerchProducts] = useState<ClubMerchProduct[]>([]);
 
   useEffect(() => {
     async function fetchAdminData() {
@@ -112,15 +151,20 @@ export function AdminDashboard() {
       }
 
       // 2. Fetch all users and products simultaneously
-      const [usersResponse, productsResponse] = await Promise.all([
+      const [usersResponse, productsResponse, clubMerchResponse] = await Promise.all([
         supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-        supabase.from('products').select('*, profiles(full_name)').order('created_at', { ascending: false })
+        supabase.from('products').select('*, profiles(full_name)').order('created_at', { ascending: false }),
+        supabase.from('products').select('*').eq('product_type', 'clubmerch').order('created_at', { ascending: false })
       ]);
 
       if (usersResponse.data) setUsers(usersResponse.data);
       if (productsResponse.data) {
         console.log("CHECK PRODUCTS DATA:", productsResponse.data);
         setProducts(productsResponse.data);
+      }
+      if (clubMerchResponse.data) {
+        console.log("CHECK CLUB MERCH DATA:", clubMerchResponse.data);
+        setClubMerchProducts(clubMerchResponse.data as ClubMerchProduct[]);
       }
 
       setLoading(false);
@@ -147,6 +191,27 @@ export function AdminDashboard() {
     } catch (error) {
       console.error("Error updating status:", error);
       alert("Failed to update listing status.");
+    }
+  };
+
+  // Admin function to toggle club merch visibility
+  const toggleClubMerchStatus = async (productId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'hidden' : 'active';
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ status: newStatus })
+        .eq('id', productId);
+
+      if (error) throw error;
+
+      // Update the UI instantly
+      setClubMerchProducts(clubMerchProducts.map(p =>
+        p.id === productId ? { ...p, status: newStatus } : p
+      ));
+    } catch (error) {
+      console.error("Error toggling visibility:", error);
+      alert("Failed to update status.");
     }
   };
 
@@ -178,6 +243,8 @@ export function AdminDashboard() {
           <TabsTrigger value="overview">System Overview</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="products">Listing Moderation</TabsTrigger>
+          <TabsTrigger value="clubmerch">Club Merchandise</TabsTrigger>
+          <TabsTrigger value="announcements">Announcements</TabsTrigger>
           <TabsTrigger value="actions">System Actions</TabsTrigger>
         </TabsList>
 
@@ -321,19 +388,101 @@ export function AdminDashboard() {
           </Card>
         </TabsContent>
 
-        {/* TAB 4: Quick Actions */}
+        {/* TAB 4: Club Merchandise Management */}
+        <TabsContent value="clubmerch">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Club Merchandise Management</CardTitle>
+                <Button onClick={() => navigate('/clubmerchcreate')} className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" /> Create New Item
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {clubMerchProducts.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-gray-500 text-lg mb-4">No club merchandise found.</p>
+                  <Button onClick={() => navigate('/clubmerchcreate')} variant="outline">
+                    Create your first item
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {clubMerchProducts.map((product) => (
+                    <Card key={product.id} className={`overflow-hidden transition-all ${product.status === 'hidden' ? 'opacity-70 bg-gray-50' : 'bg-white'}`}>
+                      <CardContent className="p-0">
+                        <div className="flex items-center p-4">
+                          <div className="h-20 w-20 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                            <img
+                              src={getClubMerchImageUrl(product.image_urls)}
+                              alt={product.title}
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "https://via.placeholder.com/400";
+                              }}
+                            />
+                          </div>
+
+                          <div className="ml-4 flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="outline" className="text-blue-700 bg-blue-50 border-blue-200">{product.club_name || "Unknown Club"}</Badge>
+                              {product.status === 'hidden' && <Badge variant="destructive">Hidden</Badge>}
+                            </div>
+                            <h3 className="font-semibold text-lg text-gray-900 line-clamp-1">{product.title}</h3>
+                            <p className="text-blue-600 font-medium">RM {product.price}</p>
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <Button variant="outline" size="sm" onClick={() => navigate(`/edit/${product.id}`)}>
+                              <Edit className="w-4 h-4 mr-2" /> Edit
+                            </Button>
+                            <Button variant={product.status === 'active' ? "destructive" : "secondary"} size="sm" onClick={() => toggleClubMerchStatus(product.id, product.status)}>
+                              {product.status === 'active' ? <><EyeOff className="w-4 h-4 mr-2" /> Hide</> : <><Eye className="w-4 h-4 mr-2" /> Show</>}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 5: System Announcements */}
+        <TabsContent value="announcements">
+          <Card>
+            <CardHeader>
+              <CardTitle>System Announcements</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                <Megaphone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 text-lg font-medium mb-2">System Announcements Coming Soon</p>
+                <p className="text-gray-500 mb-6">Broadcast global announcements to all students on the platform homepage.</p>
+                <Button variant="outline" disabled>
+                  Post Announcement (Under Development)
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 6: Quick Actions */}
         <TabsContent value="actions">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="hover:shadow-md transition-shadow border-blue-100">
               <CardHeader>
                 <CardTitle className="flex items-center text-blue-700">
-                  <Store className="h-5 w-5 mr-2" /> Manage Club Merch
+                  <Store className="h-5 w-5 mr-2" /> Quick Access
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 mb-4">Add new official merchandise on behalf of university clubs and societies.</p>
+                <p className="text-gray-600 mb-4">Fast access to club merchandise creation.</p>
                 <Button onClick={() => navigate('/clubmerchcreate')} className="w-full bg-blue-600 hover:bg-blue-700">
-                  Go to Club Merch Creator
+                  Create Club Merch Item
                 </Button>
               </CardContent>
             </Card>
@@ -341,13 +490,13 @@ export function AdminDashboard() {
             <Card className="hover:shadow-md transition-shadow border-purple-100">
               <CardHeader>
                 <CardTitle className="flex items-center text-purple-700">
-                  <Megaphone className="h-5 w-5 mr-2" /> System Announcements
+                  <Megaphone className="h-5 w-5 mr-2" /> Announcements
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 mb-4">Broadcast global announcements to all students on the platform homepage.</p>
-                <Button variant="outline" className="w-full border-purple-200 text-purple-700 hover:bg-purple-50">
-                  Post Announcement (Coming Soon)
+                <p className="text-gray-600 mb-4">Manage and post announcements to the platform.</p>
+                <Button variant="outline" className="w-full border-purple-200 text-purple-700 hover:bg-purple-50" disabled>
+                  Coming Soon
                 </Button>
               </CardContent>
             </Card>
