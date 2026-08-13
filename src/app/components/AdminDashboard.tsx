@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Users, Package, Megaphone, ShieldAlert, EyeOff, Eye, Loader2, Plus, Edit } from "lucide-react";
+import { Users, Package, Megaphone, ShieldAlert, EyeOff, Eye, Loader2, Plus, Edit, Store } from "lucide-react";
 import { supabase } from "../../supabase";
 import { useNavigate } from "react-router-dom";
 
