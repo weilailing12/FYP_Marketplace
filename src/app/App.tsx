@@ -51,9 +51,10 @@ export default function App() {
   if (!isLoggedIn) {
     return (
       <Routes>
+        <Route path="/login" element={<LoginPage onLogin={() => {}} />} />
         <Route path="/register" element={<Register />} />
-        {/* We pass an empty function because Supabase's listener above handles the login automatically */}
-        <Route path="*" element={<LoginPage onLogin={() => {}} />} />
+        {/* If they try to go anywhere else (like /marketplace), redirect to /login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
   }
