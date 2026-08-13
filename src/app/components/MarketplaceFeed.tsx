@@ -11,7 +11,7 @@ export function MarketplaceFeed() {
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const searchQuery = searchParams.get("q") || "";
 
   // This function fetches the real data from Supabase!
@@ -26,7 +26,7 @@ export function MarketplaceFeed() {
           .order('created_at', { ascending: false }); // Newest items first!
 
         if (error) throw error;
-        
+
         if (data) {
           setProducts(data);
         }
@@ -41,7 +41,7 @@ export function MarketplaceFeed() {
   }, []);
 
   // Filter products based on search bar
-  const filteredProducts = products.filter(product => 
+  const filteredProducts = products.filter(product =>
     product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -75,20 +75,21 @@ export function MarketplaceFeed() {
             </div>
           ) : (
             filteredProducts.map((product) => (
-              <Card 
-                key={product.id} 
+              <Card
+                key={product.id}
                 onClick={() => navigate(`/product/${product.id}`)}
                 className="overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 border border-gray-100 group cursor-pointer"
               >
                 {/* 1. Just the Picture */}
                 <div className="h-40 sm:h-48 relative overflow-hidden bg-gray-50">
-                  <img 
-                    src={product.image_url || "https://via.placeholder.com/400"} 
+                  <img
+                    // Grabs the first image from the array, or falls back to a placeholder
+                    src={(product.image_urls && product.image_urls.length > 0) ? product.image_urls[0] : "https://via.placeholder.com/400"}
                     alt={product.title}
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
-                
+
                 {/* 2. Just the Name (and Price) */}
                 <CardHeader className="p-3">
                   <h3 className="font-medium text-sm sm:text-base line-clamp-2 leading-tight text-gray-800 group-hover:text-blue-600 transition-colors">
@@ -98,7 +99,7 @@ export function MarketplaceFeed() {
                     RM {product.price.toFixed(2)}
                   </p>
                 </CardHeader>
-                
+
                 {/* Notice that <CardContent> with the description is completely deleted! */}
               </Card>
             ))
