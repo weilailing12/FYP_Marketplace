@@ -24,6 +24,10 @@ interface ProductInfo {
   product_type: string;
   status: string;
   seller_id: string;
+  image_url?: string;
+  profiles?: {
+    full_name: string;
+  };
 }
 
 export function AdminDashboard() {
@@ -56,7 +60,7 @@ export function AdminDashboard() {
       // 2. Fetch all users and products simultaneously
       const [usersResponse, productsResponse] = await Promise.all([
         supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-        supabase.from('products').select('*').order('created_at', { ascending: false })
+        supabase.from('products').select('*, profiles(full_name)').order('created_at', { ascending: false })
       ]);
 
       if (usersResponse.data) setUsers(usersResponse.data);
@@ -203,7 +207,9 @@ export function AdminDashboard() {
                 <table className="w-full text-sm text-left">
                   <thead className="bg-gray-50 text-gray-600 font-medium border-b">
                     <tr>
+                      <th className="px-4 py-3">Image</th>
                       <th className="px-4 py-3">Item Title</th>
+                      <th className="px-4 py-3">Seller</th>
                       <th className="px-4 py-3">Type</th>
                       <th className="px-4 py-3">Price</th>
                       <th className="px-4 py-3">Status</th>
@@ -213,10 +219,18 @@ export function AdminDashboard() {
                   <tbody className="divide-y">
                     {products.map(product => (
                       <tr key={product.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-900">
-                          <div className="w-[250px] whitespace-normal break-words leading-tight">
-                            {product.title}
-                          </div>
+                        <td className="px-4 py-3">
+                          <img
+                            src={product.image_url || "https://via.placeholder.com/50"}
+                            alt={product.title}
+                            className="w-10 h-10 object-cover rounded border"
+                          />
+                        </td>
+                        <td className="px-4 py-3 font-medium text-gray-900 max-w-[250px] whitespace-normal break-words">
+                          {product.title}
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">
+                          {product.profiles?.full_name || "Unknown"}
                         </td>
                         <td className="px-4 py-3 capitalize">{product.product_type}</td>
                         <td className="px-4 py-3">RM {product.price.toFixed(2)}</td>
