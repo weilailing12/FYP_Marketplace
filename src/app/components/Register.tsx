@@ -106,6 +106,11 @@ export const Register = () => {
       return;
     }
 
+    if (!formData.email.toLowerCase().endsWith('@1utar.my')) {
+      setError("You must use a valid @1utar.my student email address to register.");
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 

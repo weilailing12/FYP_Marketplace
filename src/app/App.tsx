@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { LoginPage } from "./components/LoginPage";
 import { Register } from "./components/Register";
@@ -20,20 +20,44 @@ import { supabase } from "../supabase";
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loadingAuth, setLoadingAuth] = useState(true);
 
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-  };
+  useEffect(() => {
+    // 1. Check if they are already logged in when the app loads (prevents logout on refresh)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+      setLoadingAuth(false);
+    });
 
+    // 2. Listen for login/logout events automatically (This replaces handleLogin!)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Show a blank screen or a loading spinner while Supabase checks the session
+  if (loadingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-500">Checking authentication...</p>
+      </div>
+    );
+  }
+
+  // If not logged in, ONLY allow access to Register and Login
   if (!isLoggedIn) {
     return (
       <Routes>
         <Route path="/register" element={<Register />} />
-        <Route path="*" element={<LoginPage onLogin={handleLogin} />} />
+        {/* We pass an empty function because Supabase's listener above handles the login automatically */}
+        <Route path="*" element={<LoginPage onLogin={() => {}} />} />
       </Routes>
     );
   }
 
+  // If logged in, show the main application
   return (
     <div className="min-h-screen flex bg-gray-50">
       {/* 1. Sidebar */}
@@ -45,7 +69,7 @@ export default function App() {
       {/* 2. Main Content Area (Shifts right when Sidebar is open) */}
       <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'lg:ml-64' : 'ml-0'}`}>
         
-        {/* 3. The Global Navbar is back! */}
+        {/* 3. The Global Navbar */}
         <Navbar />
         
         {/* 4. Page Content */}
