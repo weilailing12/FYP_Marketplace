@@ -61,7 +61,7 @@ export function AdminDashboard() {
 
       if (usersResponse.data) setUsers(usersResponse.data);
       if (productsResponse.data) setProducts(productsResponse.data);
-      
+
       setLoading(false);
     }
 
@@ -78,9 +78,9 @@ export function AdminDashboard() {
         .eq('id', productId);
 
       if (error) throw error;
-      
+
       // Update the UI instantly
-      setProducts(products.map(p => 
+      setProducts(products.map(p =>
         p.id === productId ? { ...p, status: newStatus } : p
       ));
     } catch (error) {
@@ -213,7 +213,11 @@ export function AdminDashboard() {
                   <tbody className="divide-y">
                     {products.map(product => (
                       <tr key={product.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-900 line-clamp-1 max-w-[200px]">{product.title}</td>
+                        <td className="px-4 py-3 font-medium text-gray-900">
+                          <div className="w-[250px] whitespace-normal break-words leading-tight">
+                            {product.title}
+                          </div>
+                        </td>
                         <td className="px-4 py-3 capitalize">{product.product_type}</td>
                         <td className="px-4 py-3">RM {product.price.toFixed(2)}</td>
                         <td className="px-4 py-3">
@@ -222,12 +226,12 @@ export function AdminDashboard() {
                           </Badge>
                         </td>
                         <td className="px-4 py-3">
-                          <Button 
-                            variant={product.status === 'active' ? "destructive" : "outline"} 
+                          <Button
+                            variant={product.status === 'active' ? "destructive" : "outline"}
                             size="sm"
                             onClick={() => toggleProductStatus(product.id, product.status)}
                           >
-                            {product.status === 'active' ? <><EyeOff className="h-4 w-4 mr-1"/> Hide</> : <><Eye className="h-4 w-4 mr-1"/> Restore</>}
+                            {product.status === 'active' ? <><EyeOff className="h-4 w-4 mr-1" /> Hide</> : <><Eye className="h-4 w-4 mr-1" /> Restore</>}
                           </Button>
                         </td>
                       </tr>
