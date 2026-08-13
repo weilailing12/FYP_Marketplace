@@ -5,7 +5,7 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Upload, CheckCircle2, Image as ImageIcon, Package, Tag, DollarSign, FileText, Loader2, Save, ArrowLeft } from "lucide-react";
+import { Upload, CheckCircle2, Image as ImageIcon, Package, Tag, DollarSign, FileText, Loader2, Save, ArrowLeft, X, Plus } from "lucide-react";
 import { supabase } from "../../supabase";
 
 import { useNavigate, useParams } from "react-router-dom";
@@ -25,16 +25,16 @@ export function EditProduct() {
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imageUploaded, setImageUploaded] = useState(true); // Default true since we are editing an existing item
   
   const [productType, setProductType] = useState<"secondhand" | "clubmerch">("secondhand");
   
+  // CHANGED: image_url to image_urls array
   const [formData, setFormData] = useState({
     title: "",
     category: "",
     price: "",
     description: "",
-    image_url: "",
+    image_urls: [] as string[],
     club_name: ""
   });
 
@@ -58,10 +58,9 @@ export function EditProduct() {
             category: data.category || "",
             price: data.price ? data.price.toString() : "",
             description: data.description || "",
-            image_url: data.image_url || "",
+            image_urls: data.image_urls || [], // Load the array!
             club_name: data.club_name || ""
           });
-          setImageUploaded(!!data.image_url);
         }
       } catch (error) {
         console.error("Error fetching product details:", error);
@@ -79,30 +78,40 @@ export function EditProduct() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // NEW: Handles an array of files just like CreateListing
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setIsUploading(true);
     
     try {
-      const fileExt = file.name.split('.').pop();
-      const prefix = productType === "clubmerch" ? "clubmerch_" : "";
-      const fileName = `${prefix}${Date.now()}.${fileExt}`;
-      const filePath = `products/${fileName}`;
+      const uploadedUrls: string[] = [];
 
-      const { error: uploadError } = await supabase.storage
-        .from('campus-images')
-        .upload(filePath, file);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const prefix = productType === "clubmerch" ? "clubmerch_" : "";
+        const fileName = `${prefix}${Date.now()}_${i}.${fileExt}`;
+        const filePath = `products/${fileName}`;
 
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from('campus-images')
+          .upload(filePath, file);
 
-      const { data: publicUrlData } = supabase.storage
-        .from('campus-images')
-        .getPublicUrl(filePath);
+        if (uploadError) throw uploadError;
 
-      setFormData(prev => ({ ...prev, image_url: publicUrlData.publicUrl }));
-      setImageUploaded(true);
+        const { data: publicUrlData } = supabase.storage
+          .from('campus-images')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrlData.publicUrl);
+      }
+
+      setFormData(prev => ({ 
+        ...prev, 
+        image_urls: [...prev.image_urls, ...uploadedUrls] 
+      }));
       
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -110,6 +119,13 @@ export function EditProduct() {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const removeImage = (indexToRemove: number) => {
+    setFormData(prev => ({
+      ...prev,
+      image_urls: prev.image_urls.filter((_, index) => index !== indexToRemove)
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -129,7 +145,7 @@ export function EditProduct() {
         description: formData.description,
         price: parseFloat(formData.price),
         category: formData.category,
-        image_url: formData.image_url,
+        image_urls: formData.image_urls, // CHANGED to array
       };
 
       if (productType === "clubmerch") {
@@ -143,7 +159,6 @@ export function EditProduct() {
 
       if (error) throw error;
 
-      // Success! Navigate back to the product details page
       navigate(`/product/${productId}`);
       
     } catch (error) {
@@ -211,17 +226,9 @@ export function EditProduct() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="title" className="font-semibold text-gray-700">
-                  <Tag className="h-4 w-4 inline mr-2" />
-                  Listing Title
+                  <Tag className="h-4 w-4 inline mr-2" /> Listing Title
                 </Label>
-                <Input
-                  id="title"
-                  placeholder="e.g., MacBook Pro 2020"
-                  value={formData.title}
-                  onChange={(e) => handleInputChange("title", e.target.value)}
-                  className="bg-white border-gray-300 focus:ring-blue-500"
-                  required
-                />
+                <Input id="title" value={formData.title} onChange={(e) => handleInputChange("title", e.target.value)} required />
               </div>
 
               <div className="space-y-2">
@@ -231,77 +238,61 @@ export function EditProduct() {
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="books"> 📚 Books & Textbooks</SelectItem>
-                    <SelectItem value="electronics"> 💻 Electronics</SelectItem>
-                    <SelectItem value="furniture"> 🪑 Furniture</SelectItem>
-                    <SelectItem value="accessories"> 🎒 Accessories</SelectItem>
-                    <SelectItem value="clothing"> 👕 Clothing</SelectItem>
-                    <SelectItem value="other"> 📦 Other</SelectItem>
+                    <SelectItem value="books">📚 Books & Textbooks</SelectItem>
+                    <SelectItem value="electronics">💻 Electronics</SelectItem>
+                    <SelectItem value="furniture">🪑 Furniture</SelectItem>
+                    <SelectItem value="accessories">🎒 Accessories</SelectItem>
+                    <SelectItem value="clothing">👕 Clothing</SelectItem>
+                    <SelectItem value="other">📦 Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="price" className="font-semibold text-gray-700">
-                  <DollarSign className="h-4 w-4 inline mr-2" />
-                  Price (RM)
+                  <DollarSign className="h-4 w-4 inline mr-2" /> Price (RM)
                 </Label>
-                <Input
-                  id="price"
-                  type="number"
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => handleInputChange("price", e.target.value)}
-                  className="bg-white border-gray-300 focus:ring-blue-500"
-                  required
-                />
+                <Input id="price" type="number" min="0" step="0.01" value={formData.price} onChange={(e) => handleInputChange("price", e.target.value)} required />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="description" className="font-semibold text-gray-700">
-                <FileText className="h-4 w-4 inline mr-2" />
-                Description
+                <FileText className="h-4 w-4 inline mr-2" /> Description
               </Label>
-              <Textarea
-                id="description"
-                placeholder="Describe your item..."
-                rows={5}
-                value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
-                className="bg-white border-gray-300 focus:ring-blue-500"
-                required
-              />
+              <Textarea id="description" rows={5} value={formData.description} onChange={(e) => handleInputChange("description", e.target.value)} required />
             </div>
 
-            {/* Image Upload Section */}
+            {/* NEW: Array Image Editor */}
             <div className="space-y-2">
               <Label className="font-semibold text-gray-700">
-                <ImageIcon className="h-4 w-4 inline mr-2" />
-                Product Image
+                <ImageIcon className="h-4 w-4 inline mr-2" /> Product Images
               </Label>
               
               <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50 flex flex-col items-center justify-center text-center">
-                {formData.image_url ? (
-                  <div className="mb-4">
-                    <img
-                      src={formData.image_url}
-                      alt="Current preview"
-                      className="h-48 object-contain mx-auto rounded-md shadow-sm border border-gray-200"
-                    />
-                  </div>
-                ) : (
-                  <div className="mb-4">
-                    <Upload className="h-12 w-12 text-gray-400 mx-auto" />
-                    <p className="mt-2 text-sm text-gray-600">No image currently</p>
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-4 mb-4 justify-center">
+                  {formData.image_urls.length > 0 ? (
+                    formData.image_urls.map((url, idx) => (
+                      <div key={idx} className="relative h-24 w-24 border rounded-md overflow-hidden bg-white shadow-sm">
+                        <img src={url} alt="preview" className="h-full w-full object-cover" />
+                        <button 
+                          type="button" 
+                          onClick={() => removeImage(idx)}
+                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 shadow-sm"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-500 mb-2">No images currently uploaded.</div>
+                  )}
+                </div>
                 
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleImageUpload}
                   style={{ display: 'none' }}
                   id="edit-image-upload"
@@ -314,26 +305,17 @@ export function EditProduct() {
                   {isUploading ? (
                     <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...</>
                   ) : (
-                    "Replace Image"
+                    <><Plus className="h-4 w-4 mr-2" /> Add Photos</>
                   )}
                 </label>
               </div>
             </div>
 
             <div className="pt-6 border-t flex items-center justify-end space-x-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate(-1)}
-                disabled={isSubmitting}
-              >
+              <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white min-w-[150px]"
-                disabled={isSubmitting || !formData.title || !formData.category || !formData.price || !formData.description}
-              >
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white min-w-[150px]" disabled={isSubmitting || !formData.title || !formData.category || !formData.price || !formData.description}>
                 {isSubmitting ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
                 ) : (

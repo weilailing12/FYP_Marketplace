@@ -10,7 +10,7 @@ interface Product {
   id: string;
   title: string;
   price: number;
-  image_url: string;
+  image_urls?: string[]; // CHANGED: array type
   category: string;
   status: string;
   club_name?: string;
@@ -31,10 +31,7 @@ export function ClubMerchAdminDashboard() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      if (data) {
-        setProducts(data as Product[]);
-      }
+      if (data) setProducts(data as Product[]);
     } catch (error) {
       console.error("Error fetching club merchandise:", error);
     } finally {
@@ -55,8 +52,6 @@ export function ClubMerchAdminDashboard() {
         .eq('id', product.id);
 
       if (error) throw error;
-      
-      // Update local state
       setProducts(products.map(p => p.id === product.id ? { ...p, status: newStatus } : p));
     } catch (error) {
       console.error("Error toggling visibility:", error);
@@ -71,25 +66,17 @@ export function ClubMerchAdminDashboard() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Club Merchandise Admin</h1>
           <p className="text-gray-600">Manage all club merchandise, hide items, or create new ones.</p>
         </div>
-        <Button 
-          onClick={() => navigate('/clubmerchcreate')}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create New Item
+        <Button onClick={() => navigate('/clubmerchcreate')} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="w-4 h-4 mr-2" /> Create New Item
         </Button>
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center py-20">
-          <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
-        </div>
+        <div className="flex justify-center items-center py-20"><Loader2 className="h-10 w-10 text-blue-500 animate-spin" /></div>
       ) : products.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-lg shadow-sm border border-gray-100">
           <p className="text-gray-500 text-lg">No club merchandise found.</p>
-          <Button onClick={() => navigate('/clubmerchcreate')} className="mt-4" variant="outline">
-            Create your first item
-          </Button>
+          <Button onClick={() => navigate('/clubmerchcreate')} className="mt-4" variant="outline">Create your first item</Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
@@ -98,8 +85,9 @@ export function ClubMerchAdminDashboard() {
               <CardContent className="p-0">
                 <div className="flex items-center p-4">
                   <div className="h-20 w-20 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                    {/* CHANGED: Pulling first image from array */}
                     <img 
-                      src={product.image_url} 
+                      src={product.image_urls && product.image_urls.length > 0 ? product.image_urls[0] : "https://via.placeholder.com/400"} 
                       alt={product.title}
                       className="h-full w-full object-cover"
                     />
@@ -107,39 +95,19 @@ export function ClubMerchAdminDashboard() {
                   
                   <div className="ml-4 flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline" className="text-blue-700 bg-blue-50 border-blue-200">
-                        {product.club_name || "Unknown Club"}
-                      </Badge>
-                      {product.status === 'hidden' && (
-                        <Badge variant="destructive" className="bg-red-100 text-red-800 hover:bg-red-200 border-transparent">
-                          Hidden
-                        </Badge>
-                      )}
+                      <Badge variant="outline" className="text-blue-700 bg-blue-50 border-blue-200">{product.club_name || "Unknown Club"}</Badge>
+                      {product.status === 'hidden' && <Badge variant="destructive">Hidden</Badge>}
                     </div>
                     <h3 className="font-semibold text-lg text-gray-900 line-clamp-1">{product.title}</h3>
                     <p className="text-blue-600 font-medium">RM {product.price}</p>
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => navigate(`/edit/${product.id}`)}
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/edit/${product.id}`)}>
+                      <Edit className="w-4 h-4 mr-2" /> Edit
                     </Button>
-                    <Button 
-                      variant={product.status === 'active' ? "destructive" : "secondary"}
-                      size="sm"
-                      onClick={() => toggleVisibility(product)}
-                      className={product.status === 'hidden' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
-                    >
-                      {product.status === 'active' ? (
-                        <><EyeOff className="w-4 h-4 mr-2" /> Hide</>
-                      ) : (
-                        <><Eye className="w-4 h-4 mr-2" /> Show</>
-                      )}
+                    <Button variant={product.status === 'active' ? "destructive" : "secondary"} size="sm" onClick={() => toggleVisibility(product)}>
+                      {product.status === 'active' ? <><EyeOff className="w-4 h-4 mr-2" /> Hide</> : <><Eye className="w-4 h-4 mr-2" /> Show</>}
                     </Button>
                   </div>
                 </div>
