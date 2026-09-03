@@ -15,6 +15,9 @@ import { Sidebar } from "./components/Sidebar";
 import { Navbar } from "./components/Navbar";
 import { EditProduct } from "./components/EditProduct";
 import { AdminDashboard } from "./components/AdminDashboard";
+import { CartPage } from "./components/CartPage";
+import { CartProvider } from "./context/CartContext";
+import { SystemAnnouncements } from "./components/SystemAnnouncements";
 import { supabase } from "../supabase";
 
 export default function App() {
@@ -60,6 +63,7 @@ export default function App() {
 
   // If logged in, show the main application
   return (
+    <CartProvider>
     <div className="min-h-screen flex bg-gray-50">
       {/* 1. Sidebar */}
       <Sidebar
@@ -72,6 +76,7 @@ export default function App() {
         
         {/* 3. The Global Navbar */}
         <Navbar />
+        <SystemAnnouncements />
         
         {/* 4. Page Content */}
         <main className="flex-1">
@@ -85,6 +90,7 @@ export default function App() {
             <Route path="/clubmerch/admin" element={<Navigate to="/admin" replace />} />
             <Route path="/clubmerchcreate" element={<ClubMerchAdminCreate />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/cart" element={<CartPage />} />
             <Route path="/clubmerch" element={<ClubMerchPage />} />
             <Route path="/lostfound" element={<LostAndFoundPage />} />
             <Route path="/reportlostfound" element={<ReportLostFound />} />
@@ -95,5 +101,6 @@ export default function App() {
 
       </div>
     </div>
+    </CartProvider>
   );
 }

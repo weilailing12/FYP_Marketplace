@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Users, Package, Megaphone, ShieldAlert, EyeOff, Eye, Loader2, Plus, Edit, Store } from "lucide-react";
+import { Users, Package, Megaphone, ShieldAlert, EyeOff, Eye, Loader2, Plus, Edit, Store, FileText, Trash2 } from "lucide-react";
 import { supabase } from "../../supabase";
 import { useNavigate } from "react-router-dom";
 
@@ -38,6 +38,15 @@ interface ClubMerchProduct {
   category: string;
   status: string;
   club_name?: string;
+}
+
+interface Announcement {
+  id: string;
+  title: string;
+  description: string;
+  pdf_url?: string | null;
+  is_published: boolean;
+  created_at: string;
 }
 
 // ---------------------------------------------------------
@@ -128,6 +137,11 @@ export function AdminDashboard() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [products, setProducts] = useState<ProductInfo[]>([]);
   const [clubMerchProducts, setClubMerchProducts] = useState<ClubMerchProduct[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [announcementDescription, setAnnouncementDescription] = useState("");
+  const [announcementPdf, setAnnouncementPdf] = useState<File | null>(null);
+  const [savingAnnouncement, setSavingAnnouncement] = useState(false);
 
   useEffect(() => {
     async function fetchAdminData() {
@@ -156,6 +170,7 @@ export function AdminDashboard() {
         supabase.from('products').select('*, profiles(full_name)').order('created_at', { ascending: false }),
         supabase.from('products').select('*').eq('product_type', 'clubmerch').order('created_at', { ascending: false })
       ]);
+      const announcementsResponse = await supabase.from("announcements").select("*").order("created_at", { ascending: false });
 
       if (usersResponse.data) setUsers(usersResponse.data);
       if (productsResponse.data) {
@@ -166,6 +181,7 @@ export function AdminDashboard() {
         console.log("CHECK CLUB MERCH DATA:", clubMerchResponse.data);
         setClubMerchProducts(clubMerchResponse.data as ClubMerchProduct[]);
       }
+      if (announcementsResponse.data) setAnnouncements(announcementsResponse.data as Announcement[]);
 
       setLoading(false);
     }
@@ -213,6 +229,48 @@ export function AdminDashboard() {
       console.error("Error toggling visibility:", error);
       alert("Failed to update status.");
     }
+  };
+
+  const createAnnouncement = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!announcementTitle.trim() || !announcementDescription.trim()) return;
+    setSavingAnnouncement(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("You must be logged in.");
+      let pdfUrl: string | null = null;
+      if (announcementPdf) {
+        const filePath = `announcements/${Date.now()}-${announcementPdf.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+        const { error: uploadError } = await supabase.storage.from("campus-images").upload(filePath, announcementPdf, { upsert: false });
+        if (uploadError) throw uploadError;
+        pdfUrl = supabase.storage.from("campus-images").getPublicUrl(filePath).data.publicUrl;
+      }
+      const { data, error } = await supabase.from("announcements").insert({ title: announcementTitle.trim(), description: announcementDescription.trim(), pdf_url: pdfUrl, created_by: user.id, is_published: true }).select().single();
+      if (error) throw error;
+      setAnnouncements((current) => [data as Announcement, ...current]);
+      setAnnouncementTitle("");
+      setAnnouncementDescription("");
+      setAnnouncementPdf(null);
+      const fileInput = document.getElementById("announcement-pdf") as HTMLInputElement | null;
+      if (fileInput) fileInput.value = "";
+    } catch (error: any) {
+      alert(error.message || "Failed to publish announcement.");
+    } finally {
+      setSavingAnnouncement(false);
+    }
+  };
+
+  const toggleAnnouncement = async (announcement: Announcement) => {
+    const { error } = await supabase.from("announcements").update({ is_published: !announcement.is_published }).eq("id", announcement.id);
+    if (error) { alert(error.message); return; }
+    setAnnouncements((current) => current.map((item) => item.id === announcement.id ? { ...item, is_published: !item.is_published } : item));
+  };
+
+  const deleteAnnouncement = async (announcement: Announcement) => {
+    if (!window.confirm("Delete this announcement?")) return;
+    const { error } = await supabase.from("announcements").delete().eq("id", announcement.id);
+    if (error) { alert(error.message); return; }
+    setAnnouncements((current) => current.filter((item) => item.id !== announcement.id));
   };
 
   if (loading) {
@@ -449,21 +507,31 @@ export function AdminDashboard() {
 
         {/* TAB 5: System Announcements */}
         <TabsContent value="announcements">
-          <Card>
-            <CardHeader>
-              <CardTitle>System Announcements</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <Megaphone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 text-lg font-medium mb-2">System Announcements Coming Soon</p>
-                <p className="text-gray-500 mb-6">Broadcast global announcements to all students on the platform homepage.</p>
-                <Button variant="outline" disabled>
-                  Post Announcement (Under Development)
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-6">
+            <Card>
+              <CardHeader><CardTitle>Post Announcement</CardTitle></CardHeader>
+              <CardContent>
+                <form onSubmit={createAnnouncement} className="space-y-4">
+                  <div><label htmlFor="announcement-title" className="text-sm font-medium">Title</label><input id="announcement-title" value={announcementTitle} onChange={(event) => setAnnouncementTitle(event.target.value)} className="mt-1 w-full rounded-md border px-3 py-2" required /></div>
+                  <div><label htmlFor="announcement-description" className="text-sm font-medium">Description</label><textarea id="announcement-description" value={announcementDescription} onChange={(event) => setAnnouncementDescription(event.target.value)} className="mt-1 w-full rounded-md border px-3 py-2 min-h-28" required /></div>
+                  <div><label htmlFor="announcement-pdf" className="text-sm font-medium">PDF attachment (optional)</label><input id="announcement-pdf" type="file" accept="application/pdf" onChange={(event) => setAnnouncementPdf(event.target.files?.[0] || null)} className="mt-1 block w-full text-sm" /></div>
+                  <Button type="submit" disabled={savingAnnouncement} className="bg-blue-600 hover:bg-blue-700"><Megaphone className="h-4 w-4 mr-2" />{savingAnnouncement ? "Publishing..." : "Publish announcement"}</Button>
+                </form>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Published and Draft Announcements</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {announcements.length === 0 && <p className="text-gray-500 py-8 text-center">No announcements yet.</p>}
+                {announcements.map((announcement) => (
+                  <div key={announcement.id} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold">{announcement.title}</h3><p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{announcement.description}</p></div><Badge className={announcement.is_published ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-700"}>{announcement.is_published ? "Published" : "Draft"}</Badge></div>
+                    <div className="flex items-center gap-2 mt-3"><Button size="sm" variant="outline" onClick={() => toggleAnnouncement(announcement)}>{announcement.is_published ? <><EyeOff className="h-4 w-4 mr-1" /> Unpublish</> : <><Eye className="h-4 w-4 mr-1" /> Publish</>}</Button>{announcement.pdf_url && <a href={announcement.pdf_url} target="_blank" rel="noreferrer" className="inline-flex items-center text-sm text-blue-600 px-2"><FileText className="h-4 w-4 mr-1" /> PDF</a>}<Button size="sm" variant="ghost" onClick={() => deleteAnnouncement(announcement)} aria-label={`Delete ${announcement.title}`}><Trash2 className="h-4 w-4 text-red-500" /></Button></div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
       </Tabs>

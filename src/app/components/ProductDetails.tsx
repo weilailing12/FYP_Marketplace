@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, MessageCircle, User, ShieldCheck, Clock, Loader2, Tag, Edit2 } from "lucide-react";
+import { ArrowLeft, MessageCircle, User, Loader2, Tag, Edit2, ShoppingCart, Check } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Card, CardContent } from "./ui/card";
 import { supabase } from "../../supabase";
 import { useNavigate, useParams } from "react-router-dom";
+import { useCart } from "../context/CartContext";
 
 export function ProductDetails() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export function ProductDetails() {
   
   // NEW: State to track which image is currently showing big
   const [mainImage, setMainImage] = useState<string>("");
+  const { addItem, isInCart } = useCart();
 
   useEffect(() => {
     async function fetchProductAndSeller() {
@@ -116,6 +118,15 @@ export function ProductDetails() {
 
           <Card className="mt-auto border-blue-100 bg-blue-50/30">
             <CardContent className="p-5">
+              <Button
+                variant={isInCart(product.id) ? "outline" : "default"}
+                className="w-full mb-5"
+                onClick={() => addItem({ id: product.id, title: product.title, price: product.price, imageUrl: mainImage, sellerId: product.seller_id })}
+                disabled={isInCart(product.id)}
+              >
+                {isInCart(product.id) ? <Check className="w-4 h-4 mr-2" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
+                {isInCart(product.id) ? "Saved in cart" : "Add to cart"}
+              </Button>
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Seller Information</h3>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
