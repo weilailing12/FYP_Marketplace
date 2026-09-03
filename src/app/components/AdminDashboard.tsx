@@ -45,6 +45,7 @@ interface Announcement {
   title: string;
   description: string;
   pdf_url?: string | null;
+  image_url?: string | null;
   is_published: boolean;
   created_at: string;
 }
@@ -141,6 +142,7 @@ export function AdminDashboard() {
   const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementDescription, setAnnouncementDescription] = useState("");
   const [announcementPdf, setAnnouncementPdf] = useState<File | null>(null);
+  const [announcementImage, setAnnouncementImage] = useState<File | null>(null);
   const [savingAnnouncement, setSavingAnnouncement] = useState(false);
 
   useEffect(() => {
@@ -239,20 +241,27 @@ export function AdminDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("You must be logged in.");
       let pdfUrl: string | null = null;
+      let imageUrl: string | null = null;
+      if (announcementImage) {
+        const imagePath = `announcements/${Date.now()}-${announcementImage.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+        const { error: uploadError } = await supabase.storage.from("campus-images").upload(imagePath, announcementImage, { upsert: false });
+        if (uploadError) throw uploadError;
+        imageUrl = supabase.storage.from("campus-images").getPublicUrl(imagePath).data.publicUrl;
+      }
       if (announcementPdf) {
-        const filePath = `announcements/${Date.now()}-${announcementPdf.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+        const filePath = `announcements/${Date.now()}-pdf-${announcementPdf.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
         const { error: uploadError } = await supabase.storage.from("campus-images").upload(filePath, announcementPdf, { upsert: false });
         if (uploadError) throw uploadError;
         pdfUrl = supabase.storage.from("campus-images").getPublicUrl(filePath).data.publicUrl;
       }
-      const { data, error } = await supabase.from("announcements").insert({ title: announcementTitle.trim(), description: announcementDescription.trim(), pdf_url: pdfUrl, created_by: user.id, is_published: true }).select().single();
+      const { data, error } = await supabase.from("announcements").insert({ title: announcementTitle.trim(), description: announcementDescription.trim(), pdf_url: pdfUrl, image_url: imageUrl, created_by: user.id, is_published: true }).select().single();
       if (error) throw error;
       setAnnouncements((current) => [data as Announcement, ...current]);
       setAnnouncementTitle("");
       setAnnouncementDescription("");
       setAnnouncementPdf(null);
-      const fileInput = document.getElementById("announcement-pdf") as HTMLInputElement | null;
-      if (fileInput) fileInput.value = "";
+      setAnnouncementImage(null);
+      document.querySelectorAll<HTMLInputElement>("#announcement-pdf, #announcement-image").forEach((input) => { input.value = ""; });
     } catch (error: any) {
       alert(error.message || "Failed to publish announcement.");
     } finally {
@@ -514,6 +523,7 @@ export function AdminDashboard() {
                 <form onSubmit={createAnnouncement} className="space-y-4">
                   <div><label htmlFor="announcement-title" className="text-sm font-medium">Title</label><input id="announcement-title" value={announcementTitle} onChange={(event) => setAnnouncementTitle(event.target.value)} className="mt-1 w-full rounded-md border px-3 py-2" required /></div>
                   <div><label htmlFor="announcement-description" className="text-sm font-medium">Description</label><textarea id="announcement-description" value={announcementDescription} onChange={(event) => setAnnouncementDescription(event.target.value)} className="mt-1 w-full rounded-md border px-3 py-2 min-h-28" required /></div>
+                  <div><label htmlFor="announcement-image" className="text-sm font-medium">Thumbnail image (optional)</label><input id="announcement-image" type="file" accept="image/*" onChange={(event) => setAnnouncementImage(event.target.files?.[0] || null)} className="mt-1 block w-full text-sm" /></div>
                   <div><label htmlFor="announcement-pdf" className="text-sm font-medium">PDF attachment (optional)</label><input id="announcement-pdf" type="file" accept="application/pdf" onChange={(event) => setAnnouncementPdf(event.target.files?.[0] || null)} className="mt-1 block w-full text-sm" /></div>
                   <Button type="submit" disabled={savingAnnouncement} className="bg-blue-600 hover:bg-blue-700"><Megaphone className="h-4 w-4 mr-2" />{savingAnnouncement ? "Publishing..." : "Publish announcement"}</Button>
                 </form>
@@ -525,7 +535,7 @@ export function AdminDashboard() {
                 {announcements.length === 0 && <p className="text-gray-500 py-8 text-center">No announcements yet.</p>}
                 {announcements.map((announcement) => (
                   <div key={announcement.id} className="border rounded-lg p-4">
-                    <div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold">{announcement.title}</h3><p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{announcement.description}</p></div><Badge className={announcement.is_published ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-700"}>{announcement.is_published ? "Published" : "Draft"}</Badge></div>
+                    <div className="flex items-start justify-between gap-3">{announcement.image_url && <img src={announcement.image_url} alt="" className="h-14 w-14 rounded object-cover" />}<div className="flex-1"><h3 className="font-semibold">{announcement.title}</h3><p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{announcement.description}</p></div><Badge className={announcement.is_published ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-700"}>{announcement.is_published ? "Published" : "Draft"}</Badge></div>
                     <div className="flex items-center gap-2 mt-3"><Button size="sm" variant="outline" onClick={() => toggleAnnouncement(announcement)}>{announcement.is_published ? <><EyeOff className="h-4 w-4 mr-1" /> Unpublish</> : <><Eye className="h-4 w-4 mr-1" /> Publish</>}</Button>{announcement.pdf_url && <a href={announcement.pdf_url} target="_blank" rel="noreferrer" className="inline-flex items-center text-sm text-blue-600 px-2"><FileText className="h-4 w-4 mr-1" /> PDF</a>}<Button size="sm" variant="ghost" onClick={() => deleteAnnouncement(announcement)} aria-label={`Delete ${announcement.title}`}><Trash2 className="h-4 w-4 text-red-500" /></Button></div>
                   </div>
                 ))}

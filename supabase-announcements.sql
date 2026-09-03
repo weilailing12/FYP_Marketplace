@@ -9,6 +9,9 @@ create table if not exists public.announcements (
   created_at timestamptz not null default now()
 );
 
+-- Run this statement for an announcements table that was already created.
+alter table public.announcements add column if not exists image_url text;
+
 alter table public.announcements enable row level security;
 
 create policy "Students can view published announcements"
