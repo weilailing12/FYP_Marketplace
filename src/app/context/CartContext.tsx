@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { supabase } from "../../supabase";
 
 export interface CartItem {
   id: string;
@@ -17,21 +18,33 @@ interface CartContextValue {
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
-const CART_STORAGE_KEY = "campustrade-cart";
+const CART_STORAGE_PREFIX = "campustrade-cart";
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(() => {
-    try {
-      const savedItems = localStorage.getItem(CART_STORAGE_KEY);
-      return savedItems ? JSON.parse(savedItems) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [items, setItems] = useState<CartItem[]>([]);
+  const [storageKey, setStorageKey] = useState<string | null>(null);
 
   useEffect(() => {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-  }, [items]);
+    async function loadUserCart() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const userStorageKey = `${CART_STORAGE_PREFIX}:${user.id}`;
+      setStorageKey(userStorageKey);
+      try {
+        const savedItems = localStorage.getItem(userStorageKey);
+        setItems(savedItems ? JSON.parse(savedItems) : []);
+      } catch {
+        setItems([]);
+      }
+    }
+
+    loadUserCart();
+  }, []);
+
+  useEffect(() => {
+    if (storageKey) localStorage.setItem(storageKey, JSON.stringify(items));
+  }, [items, storageKey]);
 
   const value = useMemo(() => ({
     items,
