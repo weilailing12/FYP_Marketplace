@@ -19,6 +19,8 @@ import { CartPage } from "./components/CartPage";
 import { CartProvider } from "./context/CartContext";
 import { SystemAnnouncements } from "./components/SystemAnnouncements";
 import { SellerProfile } from "./components/SellerProfile";
+import { ForgotPassword } from "./components/ForgotPassword";
+import { ResetPassword } from "./components/ResetPassword";
 import { supabase } from "../supabase";
 
 export default function App() {
@@ -56,6 +58,8 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage onLogin={() => {}} />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         {/* If they try to go anywhere else (like /marketplace), redirect to /login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
@@ -86,6 +90,8 @@ export default function App() {
             <Route path="/marketplace" element={<MarketplaceFeed />} />
             <Route path="/product/:productId" element={<ProductDetails />} />
             <Route path="/seller/:sellerId" element={<SellerProfile />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/edit/:productId" element={<EditProduct />} />
             <Route path="/create" element={<CreateListing />} />
             <Route path="/chat/:sellerId" element={<ChatMeetup />} />

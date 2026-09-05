@@ -109,6 +109,8 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
           </button>
         </form>}
 
+        {!mfaRequired && <button onClick={() => navigate("/forgot-password")} className="link-button mt-4">Forgot password?</button>}
+
         <div className="login-footer">
           <span className="login-footer-text">New Student?</span>
           <button 
