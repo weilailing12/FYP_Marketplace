@@ -306,7 +306,7 @@ export function ChatMeetup() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] overflow-hidden bg-gray-50 relative">
+    <div className="h-full min-h-0 overflow-hidden bg-gray-50 relative">
       {/* --- MEETUP RESERVATION MODAL --- */}
       {showMeetupModal && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
