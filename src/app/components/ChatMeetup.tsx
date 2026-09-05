@@ -127,6 +127,7 @@ export function ChatMeetup() {
             if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
           });
         });
+        setTimeout(scrollToLatest, 250);
       }
       await supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("sender_id", sellerId).eq("receiver_id", session.user.id).is("read_at", null);
       window.dispatchEvent(new Event("campustrade-messages-read"));

@@ -295,11 +295,18 @@
 
 .marketplace-container {
   min-height: 100vh;
+  padding: 24px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
   position: relative;
   overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .marketplace-container {
+    padding: 16px;
+  }
 }
 
 .marketplace-hero {
