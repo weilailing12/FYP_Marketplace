@@ -23,6 +23,7 @@ export function MarketplaceFeed() {
           .select('*')
           .eq('product_type', 'secondhand') // Only show secondhand items
           .eq('status', 'active') // Only show active items
+          .eq('availability', 'available')
           .order('created_at', { ascending: false }); // Newest items first!
 
         if (error) throw error;

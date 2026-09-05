@@ -18,6 +18,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     { label: "Second Hand Products", page: "marketplace", icon: "🛍️" },
     { label: "Club Merchandise", page: "clubmerch", icon: "👕" },
     { label: "Lost & Found Item", page: "lostfound", icon: "🔍" },
+    { label: "Seller Dashboard", page: "seller-dashboard", icon: "📦" },
     { label: "Settings", page: "profile", icon: "⚙️" },
   ];
 

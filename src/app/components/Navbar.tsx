@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, ShoppingCart } from "lucide-react";
+import { Search, Plus, ShoppingCart, MessageCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
@@ -71,6 +71,9 @@ export function Navbar() {
             <Button variant="outline" size="icon" onClick={() => navigate("/cart")} aria-label={`Open cart with ${itemCount} items`} className="relative">
               <ShoppingCart className="h-4 w-4" />
               {itemCount > 0 && <span className="absolute -right-2 -top-2 min-w-5 h-5 rounded-full bg-blue-600 px-1 text-xs leading-5 text-white">{itemCount}</span>}
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => navigate("/messages")} aria-label="Open messages">
+              <MessageCircle className="h-4 w-4" />
             </Button>
             <Button
               onClick={() => navigate("/create")}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, MessageCircle, User, Loader2, Tag, Edit2, ShoppingCart, Check } from "lucide-react";
+import { ArrowLeft, MessageCircle, User, Loader2, Tag, Edit2, ShoppingCart, Check, ClipboardCheck } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Card, CardContent } from "./ui/card";
@@ -17,6 +17,8 @@ export function ProductDetails() {
   
   // NEW: State to track which image is currently showing big
   const [mainImage, setMainImage] = useState<string>("");
+  const [orderStatus, setOrderStatus] = useState<string | null>(null);
+  const [placingOrder, setPlacingOrder] = useState(false);
   const { addItem, isInCart } = useCart();
 
   useEffect(() => {
@@ -49,6 +51,11 @@ export function ProductDetails() {
             .single();
           if (sellerData) setSeller(sellerData);
         }
+
+        if (user && productData) {
+          const { data: existingOrder } = await supabase.from("orders").select("status").eq("product_id", productData.id).eq("buyer_id", user.id).in("status", ["pending", "accepted", "completed"]).maybeSingle();
+          if (existingOrder) setOrderStatus(existingOrder.status);
+        }
       } catch (error) {
         console.error("Error fetching details:", error);
       } finally {
@@ -58,6 +65,22 @@ export function ProductDetails() {
 
     fetchProductAndSeller();
   }, [productId]);
+
+  const placeOrder = async () => {
+    if (!currentUser || !product || product.seller_id === currentUser.id || product.availability !== "available") return;
+    setPlacingOrder(true);
+    const { data: latestProduct, error: productError } = await supabase.from("products").select("availability").eq("id", product.id).single();
+    if (productError || latestProduct?.availability !== "available") {
+      alert("This item is no longer available.");
+      setProduct((current: any) => current ? { ...current, availability: latestProduct?.availability || "sold" } : current);
+      setPlacingOrder(false);
+      return;
+    }
+    const { data: order, error } = await supabase.from("orders").insert({ product_id: product.id, buyer_id: currentUser.id, seller_id: product.seller_id, price: product.price, status: "pending" }).select("status").single();
+    if (error) alert(error.message);
+    else setOrderStatus(order.status);
+    setPlacingOrder(false);
+  };
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-blue-500" /></div>;
   if (!product) return <div className="flex justify-center py-20 text-xl font-bold">Item not found</div>;
@@ -118,31 +141,27 @@ export function ProductDetails() {
 
           <Card className="mt-auto border-blue-100 bg-blue-50/30">
             <CardContent className="p-5">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Seller Information</h3>
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center">
+                  <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mr-4"><User className="h-6 w-6" /></div>
+                  <div><button onClick={() => seller?.id && navigate(`/seller/${seller.id}`)} disabled={!seller} className="font-semibold text-gray-900 flex items-center text-lg hover:text-blue-600 disabled:hover:text-gray-900">{seller ? seller.full_name : "Campus Student"}</button></div>
+                </div>
+                <Button onClick={() => navigate(seller?.id ? `/chat/${seller.id}` : '#')} variant="outline" className="text-blue-600" disabled={!seller}><MessageCircle className="w-4 h-4 mr-2" /> Chat</Button>
+              </div>
               <Button
                 variant={isInCart(product.id) ? "outline" : "default"}
                 className="w-full mb-5"
                 onClick={() => addItem({ id: product.id, title: product.title, price: product.price, imageUrl: mainImage, sellerId: product.seller_id })}
-                disabled={isInCart(product.id)}
+                disabled={isInCart(product.id) || product.availability !== "available"}
               >
                 {isInCart(product.id) ? <Check className="w-4 h-4 mr-2" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
                 {isInCart(product.id) ? "Saved in cart" : "Add to cart"}
               </Button>
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Seller Information</h3>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mr-4">
-                    <User className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <button onClick={() => seller?.id && navigate(`/seller/${seller.id}`)} disabled={!seller} className="font-semibold text-gray-900 flex items-center text-lg hover:text-blue-600 disabled:hover:text-gray-900">
-                      {seller ? seller.full_name : "Campus Student"}
-                    </button>
-                  </div>
-                </div>
-                <Button onClick={() => navigate(seller?.id ? `/chat/${seller.id}` : '#')} className="bg-blue-600 hover:bg-blue-700" disabled={!seller}>
-                  <MessageCircle className="w-4 h-4 mr-2" /> Chat
-                </Button>
-              </div>
+              <Button className="w-full bg-green-600 hover:bg-green-700" onClick={placeOrder} disabled={placingOrder || !!orderStatus || product.availability !== "available" || currentUser?.id === product.seller_id}>
+                <ClipboardCheck className="w-4 h-4 mr-2" />{orderStatus === "pending" ? "Request sent" : orderStatus === "accepted" ? "Order accepted" : orderStatus === "completed" ? "Order completed" : product.availability !== "available" ? "Item unavailable" : placingOrder ? "Sending request..." : "Place Order"}
+              </Button>
+              <p className="text-xs text-gray-500 mt-2 text-center">This sends a request to the seller. Payment and meetup are arranged manually.</p>
             </CardContent>
           </Card>
         </div>

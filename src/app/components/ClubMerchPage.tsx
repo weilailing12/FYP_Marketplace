@@ -70,6 +70,7 @@ export function ClubMerchPage() {
           .select('*')
           .eq('product_type', 'clubmerch')
           .eq('status', 'active')
+          .eq('availability', 'available')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
