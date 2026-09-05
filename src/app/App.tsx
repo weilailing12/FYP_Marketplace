@@ -23,6 +23,7 @@ import { ForgotPassword } from "./components/ForgotPassword";
 import { ResetPassword } from "./components/ResetPassword";
 import { SellerDashboard } from "./components/SellerDashboard";
 import { MessagesInbox } from "./components/MessagesInbox";
+import { MyOrders } from "./components/MyOrders";
 import { supabase } from "../supabase";
 
 export default function App() {
@@ -94,6 +95,7 @@ export default function App() {
             <Route path="/seller/:sellerId" element={<SellerProfile />} />
             <Route path="/seller-dashboard" element={<SellerDashboard />} />
             <Route path="/messages" element={<MessagesInbox />} />
+            <Route path="/orders" element={<MyOrders />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/edit/:productId" element={<EditProduct />} />

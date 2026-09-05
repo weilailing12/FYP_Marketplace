@@ -43,3 +43,29 @@ create policy "Sellers can update their orders"
 create index if not exists orders_buyer_id_idx on public.orders(buyer_id);
 create index if not exists orders_seller_id_idx on public.orders(seller_id);
 create index if not exists orders_product_id_idx on public.orders(product_id);
+
+-- Messages: only the sender and receiver can read or send a message.
+alter table public.messages enable row level security;
+
+drop policy if exists "Users can view their messages" on public.messages;
+drop policy if exists "Users can send messages" on public.messages;
+
+create policy "Users can view their messages"
+  on public.messages for select to authenticated
+  using (sender_id = auth.uid() or receiver_id = auth.uid());
+
+create policy "Users can send messages"
+  on public.messages for insert to authenticated
+  with check (sender_id = auth.uid());
+
+do $$
+begin
+  alter publication supabase_realtime add table public.orders;
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.messages;
+exception when duplicate_object then null;
+end $$;

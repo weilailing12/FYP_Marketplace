@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, ShoppingCart, MessageCircle } from "lucide-react";
+import { Search, Plus, ShoppingCart, MessageCircle, Bell } from "lucide-react";
+import { supabase } from "../../supabase";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
@@ -10,6 +11,7 @@ export function Navbar() {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const { itemCount } = useCart();
+  const [orderNoticeCount, setOrderNoticeCount] = useState(0);
   
   const [localQuery, setLocalQuery] = useState(searchParams.get("q") || "");
   const debounceTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -18,6 +20,19 @@ export function Navbar() {
   useEffect(() => {
     setLocalQuery(searchParams.get("q") || "");
   }, [searchParams]);
+
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | undefined;
+    async function loadOrderNotices() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("orders").select("id").eq("buyer_id", user.id).in("status", ["accepted", "rejected", "completed"]);
+      setOrderNoticeCount(data?.length || 0);
+      channel = supabase.channel(`navbar-orders-${user.id}`).on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `buyer_id=eq.${user.id}` }, loadOrderNotices).subscribe();
+    }
+    loadOrderNotices();
+    return () => { if (channel) supabase.removeChannel(channel); };
+  }, []);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
@@ -74,6 +89,10 @@ export function Navbar() {
             </Button>
             <Button variant="outline" size="icon" onClick={() => navigate("/messages")} aria-label="Open messages">
               <MessageCircle className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => navigate("/orders")} aria-label={`Open orders with ${orderNoticeCount} updates`} className="relative">
+              <Bell className="h-4 w-4" />
+              {orderNoticeCount > 0 && <span className="absolute -right-2 -top-2 min-w-5 h-5 rounded-full bg-green-600 px-1 text-xs leading-5 text-white">{orderNoticeCount}</span>}
             </Button>
             <Button
               onClick={() => navigate("/create")}
