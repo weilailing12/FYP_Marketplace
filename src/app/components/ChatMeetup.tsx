@@ -3,7 +3,6 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Label } from "./ui/label";
 import { Send, Paperclip, X, Calendar, Clock } from "lucide-react";
 import { Badge } from "./ui/badge";
@@ -17,6 +16,7 @@ interface Message {
   text: string;
   image_url?: string;
   is_meetup_proposal?: boolean;
+  read_at?: string | null;
   created_at: string;
 }
 
@@ -95,6 +95,20 @@ export function ChatMeetup() {
             (newMsg.sender_id === sellerId && newMsg.receiver_id === currentUserId)
           ) {
             setMessages((prev) => [...prev, newMsg]);
+            if (newMsg.sender_id === sellerId && newMsg.receiver_id === currentUserId) {
+              supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("id", newMsg.id).eq("receiver_id", currentUserId);
+              window.dispatchEvent(new Event("campustrade-messages-read"));
+            }
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages" },
+        (payload) => {
+          const updatedMessage = payload.new as Message;
+          if ((updatedMessage.sender_id === currentUserId && updatedMessage.receiver_id === sellerId) || (updatedMessage.sender_id === sellerId && updatedMessage.receiver_id === currentUserId)) {
+            setMessages((prev) => prev.map((message) => message.id === updatedMessage.id ? updatedMessage : message));
           }
         }
       )
@@ -173,20 +187,12 @@ export function ChatMeetup() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Pickup Point</Label>
-                <Select value={meetupLocation} onValueChange={setMeetupLocation}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Main Library">Main Library</SelectItem>
-                    <SelectItem value="Café">Café</SelectItem>
-                    <SelectItem value="Student Centre">Student Centre</SelectItem>
-                    <SelectItem value="Other">Other (discuss in chat)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input value={meetupLocation} onChange={(event) => setMeetupLocation(event.target.value)} placeholder="e.g. Block A, Level 2" />
               </div>
 
               <div className="space-y-2">
                 <Label>Preferred Date</Label>
-                <Input type="date" value={meetupDate} onChange={(event) => setMeetupDate(event.target.value)} />
+                  <Input type="date" min={new Date().toISOString().split("T")[0]} value={meetupDate} onChange={(event) => setMeetupDate(event.target.value)} />
               </div>
 
               <div className="space-y-2">
@@ -240,9 +246,10 @@ export function ChatMeetup() {
                     }`}>
                       {m.image_url && <img src={m.image_url} className="w-full rounded-md mb-2 object-cover" alt="attachment" />}
                       <p className="whitespace-pre-line break-words">{m.text}</p>
-                      <p className="text-[10px] mt-1 opacity-70">
-                        {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+                      <div className="flex items-center justify-end gap-1 text-[10px] mt-1 opacity-70">
+                        <span>{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        {m.sender_id === currentUserId && <span className={m.read_at ? "text-blue-500 font-bold" : "text-gray-500"} aria-label={m.read_at ? "Read" : "Sent"}>{m.read_at ? "✓✓" : "✓"}</span>}
+                      </div>
                     </div>
                   </div>
                 ))
