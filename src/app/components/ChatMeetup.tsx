@@ -7,7 +7,7 @@ import { Label } from "./ui/label";
 import { Send, Paperclip, X, Calendar, Clock } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { supabase } from "../../supabase";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 interface Message {
   id: string;
@@ -20,9 +20,23 @@ interface Message {
   created_at: string;
 }
 
+interface MeetupProposal {
+  id: string;
+  order_id: string;
+  location: string | null;
+  meetup_date: string | null;
+  meetup_time: string | null;
+  buyer_accepted: boolean;
+  seller_accepted: boolean;
+  status: "pending" | "confirmed" | "cancelled";
+}
+
 export function ChatMeetup() {
   const navigate = useNavigate();
   const { sellerId } = useParams();
+  const [searchParams] = useSearchParams();
+  const orderId = searchParams.get("orderId");
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(orderId);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [sellerName, setSellerName] = useState("Loading...");
@@ -31,6 +45,8 @@ export function ChatMeetup() {
   const [meetupLocation, setMeetupLocation] = useState("Main Library");
   const [meetupDate, setMeetupDate] = useState("");
   const [meetupTime, setMeetupTime] = useState("");
+  const [meetupProposal, setMeetupProposal] = useState<MeetupProposal | null>(null);
+  const [isBuyer, setIsBuyer] = useState(false);
 
   const [inputText, setInputText] = useState("");
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
@@ -50,6 +66,23 @@ export function ChatMeetup() {
       setCurrentUserId(session.user.id);
 
       if (!sellerId) return;
+
+      const { data: order } = orderId
+        ? await supabase.from("orders").select("id, buyer_id, seller_id").eq("id", orderId).single()
+        : await supabase.from("orders").select("id, buyer_id, seller_id").or(`and(buyer_id.eq.${session.user.id},seller_id.eq.${sellerId}),and(buyer_id.eq.${sellerId},seller_id.eq.${session.user.id})`).in("status", ["pending", "accepted", "completed"]).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+      if (order) {
+        if (order && order.seller_id === sellerId && (order.buyer_id === session.user.id || order.seller_id === session.user.id)) {
+          setActiveOrderId(order.id);
+          setIsBuyer(order.buyer_id === session.user.id);
+          const { data: proposal } = await supabase.from("meetup_proposals").select("*").eq("order_id", orderId).maybeSingle();
+          if (proposal) {
+            setMeetupProposal(proposal as MeetupProposal);
+            setMeetupLocation(proposal.location || "");
+            setMeetupDate(proposal.meetup_date || "");
+            setMeetupTime(proposal.meetup_time?.slice(0, 5) || "");
+          }
+        }
+      }
 
       // Fetch Seller Name
       const { data: sellerData } = await supabase
@@ -72,7 +105,7 @@ export function ChatMeetup() {
       window.dispatchEvent(new Event("campustrade-messages-read"));
     }
     initChat();
-  }, [sellerId, navigate]);
+  }, [sellerId, navigate, orderId]);
 
   // 2. Setup Supabase Realtime Subscription
   useEffect(() => {
@@ -112,12 +145,15 @@ export function ChatMeetup() {
           }
         }
       )
+      .on("postgres_changes", { event: "*", schema: "public", table: "meetup_proposals", filter: activeOrderId ? `order_id=eq.${activeOrderId}` : undefined }, (payload) => {
+        setMeetupProposal(payload.new as MeetupProposal);
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUserId, sellerId]);
+  }, [currentUserId, sellerId, activeOrderId]);
 
   // 3. Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -168,8 +204,44 @@ export function ChatMeetup() {
       alert("Please choose a pickup point, date, and time.");
       return;
     }
-    const proposalText = `📅 Proposed Meetup\n📍 Pickup point: ${meetupLocation}\n📆 Preferred date: ${meetupDate}\n⏰ Preferred time: ${meetupTime}`;
-    handleSendMessage(proposalText, true);
+    if (new Date(`${meetupDate}T${meetupTime}`).getTime() <= Date.now()) {
+      alert("Please choose a future date and time.");
+      return;
+    }
+    saveMeetupProposal();
+  };
+
+  const saveMeetupProposal = async () => {
+    if (!currentUserId || !activeOrderId) {
+      alert("A meetup proposal is available after an order request is created.");
+      return;
+    }
+    const { data, error } = await supabase.from("meetup_proposals").upsert({
+      order_id: activeOrderId,
+      proposed_by: currentUserId,
+      location: meetupLocation.trim() || null,
+      meetup_date: meetupDate || null,
+      meetup_time: meetupTime || null,
+      buyer_accepted: isBuyer,
+      seller_accepted: !isBuyer,
+      status: "pending",
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "order_id" }).select().single();
+    if (error) { alert(error.message); return; }
+    setMeetupProposal(data as MeetupProposal);
+    setShowMeetupModal(false);
+  };
+
+  const acceptMeetupProposal = async () => {
+    if (!meetupProposal || !currentUserId) return;
+    const bothAccepted = isBuyer ? meetupProposal.seller_accepted : meetupProposal.buyer_accepted;
+    const { data, error } = await supabase.from("meetup_proposals").update({
+      buyer_accepted: isBuyer ? true : meetupProposal.buyer_accepted,
+      seller_accepted: isBuyer ? meetupProposal.seller_accepted : true,
+      status: bothAccepted ? "confirmed" : "pending",
+      updated_at: new Date().toISOString(),
+    }).eq("id", meetupProposal.id).select().single();
+    if (error) alert(error.message); else setMeetupProposal(data as MeetupProposal);
   };
 
   return (
@@ -254,11 +326,10 @@ export function ChatMeetup() {
                   </div>
                 ))
               )}
-              <div className="flex justify-center py-4">
-                <Button onClick={() => setShowMeetupModal(true)} variant="outline" className="border-blue-600 text-blue-600">
-                  <Calendar className="h-4 w-4 mr-2" /> Propose Meetup
-                </Button>
-              </div>
+              {activeOrderId && <div className="flex justify-center py-4"><div className="text-center space-y-3">
+                {meetupProposal && <div className="rounded-lg border bg-green-50 p-3 text-left text-sm"><p className="font-semibold text-green-900">Meetup proposal</p><p>Location: {meetupProposal.location || "Pickup location not set"}</p><p>Date: {meetupProposal.meetup_date || "Pickup date not set"}</p><p>Time: {meetupProposal.meetup_time?.slice(0, 5) || "Pickup time not set"}</p><p className="mt-1 font-medium">{meetupProposal.status === "confirmed" ? "Both agreed" : `Buyer: ${meetupProposal.buyer_accepted ? "Accepted" : "Waiting"} · Seller: ${meetupProposal.seller_accepted ? "Accepted" : "Waiting"}`}</p></div>}
+                {meetupProposal?.status !== "confirmed" && <div className="flex justify-center gap-2"><Button onClick={() => setShowMeetupModal(true)} variant="outline" className="border-blue-600 text-blue-600"><Calendar className="h-4 w-4 mr-2" /> {meetupProposal ? "Edit Meetup Proposal" : "Propose Meetup"}</Button>{meetupProposal && !(isBuyer ? meetupProposal.buyer_accepted : meetupProposal.seller_accepted) && <Button onClick={acceptMeetupProposal} className="bg-green-600 hover:bg-green-700">Accept</Button>}</div>}
+              </div></div>}
             </CardContent>
 
             <div className="p-4 border-t bg-white">

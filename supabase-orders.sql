@@ -44,6 +44,42 @@ create index if not exists orders_buyer_id_idx on public.orders(buyer_id);
 create index if not exists orders_seller_id_idx on public.orders(seller_id);
 create index if not exists orders_product_id_idx on public.orders(product_id);
 
+create table if not exists public.meetup_proposals (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null unique references public.orders(id) on delete cascade,
+  proposed_by uuid not null references auth.users(id) on delete cascade,
+  location text,
+  meetup_date date,
+  meetup_time time,
+  buyer_accepted boolean not null default false,
+  seller_accepted boolean not null default false,
+  status text not null default 'pending',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint meetup_proposals_status_check check (status in ('pending', 'confirmed', 'cancelled'))
+);
+
+alter table public.meetup_proposals enable row level security;
+
+drop policy if exists "Order participants can view meetup proposals" on public.meetup_proposals;
+drop policy if exists "Order participants can create meetup proposals" on public.meetup_proposals;
+drop policy if exists "Order participants can update meetup proposals" on public.meetup_proposals;
+
+create policy "Order participants can view meetup proposals"
+  on public.meetup_proposals for select to authenticated
+  using (exists (select 1 from public.orders where orders.id = order_id and (orders.buyer_id = auth.uid() or orders.seller_id = auth.uid())));
+
+create policy "Order participants can create meetup proposals"
+  on public.meetup_proposals for insert to authenticated
+  with check (proposed_by = auth.uid() and exists (select 1 from public.orders where orders.id = order_id and (orders.buyer_id = auth.uid() or orders.seller_id = auth.uid())));
+
+create policy "Order participants can update meetup proposals"
+  on public.meetup_proposals for update to authenticated
+  using (exists (select 1 from public.orders where orders.id = order_id and (orders.buyer_id = auth.uid() or orders.seller_id = auth.uid())))
+  with check (exists (select 1 from public.orders where orders.id = order_id and (orders.buyer_id = auth.uid() or orders.seller_id = auth.uid())));
+
+create index if not exists meetup_proposals_order_id_idx on public.meetup_proposals(order_id);
+
 -- Read state for incoming chat notifications.
 alter table public.messages add column if not exists read_at timestamptz;
 drop policy if exists "Users can mark received messages as read" on public.messages;
@@ -75,5 +111,11 @@ end $$;
 do $$
 begin
   alter publication supabase_realtime add table public.messages;
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.meetup_proposals;
 exception when duplicate_object then null;
 end $$;
