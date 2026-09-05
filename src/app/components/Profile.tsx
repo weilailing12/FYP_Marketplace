@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Switch } from "./ui/switch";
 import { Separator } from "./ui/separator";
-import { Loader2, CheckCircle2, User, Bell, Shield, Settings, Moon, Sun } from "lucide-react";
+import { Loader2, CheckCircle2, User, Shield, KeyRound, Smartphone } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useNavigate } from "react-router-dom";
@@ -52,6 +52,15 @@ export function Profile() {
   const [activeTab, setActiveTab] = useState("profile");
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaQrCode, setMfaQrCode] = useState<string | null>(null);
+  const [mfaSecret, setMfaSecret] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [privacyMessage, setPrivacyMessage] = useState("");
+  const [privacyError, setPrivacyError] = useState("");
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -77,6 +86,10 @@ export function Profile() {
       }
       
       setUserId(session.user.id);
+
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const verifiedFactor = factors?.totp.find((factor) => factor.status === "verified");
+      if (verifiedFactor) setMfaFactorId(verifiedFactor.id);
 
       // Fetch from profiles table
       const { data: profileData, error } = await supabase
@@ -146,6 +159,48 @@ export function Profile() {
     setTimeout(() => setSaveSuccess(false), 3000);
   };
 
+  const beginMfaSetup = async () => {
+    setPrivacyError("");
+    setPrivacyMessage("");
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "CampusTrade Authenticator" });
+    if (error) { setPrivacyError(error.message); return; }
+    setMfaFactorId(data.id);
+    setMfaQrCode(data.totp.qr_code);
+    setMfaSecret(data.totp.secret);
+  };
+
+  const verifyMfa = async () => {
+    if (!mfaFactorId || mfaCode.length !== 6) return;
+    setPrivacyError("");
+    const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+    if (challengeError) { setPrivacyError(challengeError.message); return; }
+    const { error } = await supabase.auth.mfa.verify({ factorId: mfaFactorId, challengeId: challenge.id, code: mfaCode });
+    if (error) setPrivacyError(error.message);
+    else { setMfaQrCode(null); setMfaSecret(null); setMfaCode(""); setPrivacyMessage("Multi-factor authentication is enabled."); }
+  };
+
+  const disableMfa = async () => {
+    if (!mfaFactorId) return;
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: mfaFactorId });
+    if (error) setPrivacyError(error.message);
+    else { setMfaFactorId(null); setPrivacyMessage("Multi-factor authentication is disabled."); }
+  };
+
+  const changePassword = async (event: FormEvent) => {
+    event.preventDefault();
+    setPrivacyError("");
+    setPrivacyMessage("");
+    if (newPassword.length < 8) { setPrivacyError("New password must be at least 8 characters."); return; }
+    if (newPassword !== confirmPassword) { setPrivacyError("New passwords do not match."); return; }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) { setPrivacyError("Unable to identify your account."); return; }
+    const { error: reauthError } = await supabase.auth.signInWithPassword({ email: user.email, password: oldPassword });
+    if (reauthError) { setPrivacyError("The current password is incorrect."); return; }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) setPrivacyError(error.message);
+    else { setOldPassword(""); setNewPassword(""); setConfirmPassword(""); setPrivacyMessage("Password changed successfully."); }
+  };
+
   return (
     <div className="profile-container">
       {/* Floating decorative shapes */}
@@ -168,17 +223,9 @@ export function Profile() {
               <User className="h-4 w-4 mr-2" />
               Profile
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="tab-trigger">
-              <Bell className="h-4 w-4 mr-2" />
-              Notifications
-            </TabsTrigger>
             <TabsTrigger value="privacy" className="tab-trigger">
               <Shield className="h-4 w-4 mr-2" />
               Privacy
-            </TabsTrigger>
-            <TabsTrigger value="preferences" className="tab-trigger">
-              <Settings className="h-4 w-4 mr-2" />
-              Preferences
             </TabsTrigger>
           </TabsList>
 
@@ -499,24 +546,6 @@ export function Profile() {
 
                       <Separator />
 
-                      <FormField
-                        control={settingsForm.control}
-                        name="twoFactorAuth"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center justify-between p-4 rounded-lg border bg-white/50">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base font-medium">Two-Factor Authentication</FormLabel>
-                              <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
                     </div>
 
                     <Button
@@ -535,6 +564,20 @@ export function Profile() {
                     </Button>
                   </form>
                 </Form>
+                <Separator />
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3"><Smartphone className="h-5 w-5 text-blue-600 mt-1" /><div><h3 className="font-semibold text-gray-900">Multi-factor authentication</h3><p className="text-sm text-gray-600">Use an authenticator app to protect your account when signing in.</p></div></div>
+                  {privacyError && <Alert className="bg-red-50 border-red-200"><AlertDescription className="text-red-800">{privacyError}</AlertDescription></Alert>}
+                  {privacyMessage && <Alert className="bg-green-50 border-green-200"><AlertDescription className="text-green-800">{privacyMessage}</AlertDescription></Alert>}
+                  {!mfaFactorId && !mfaQrCode && <Button type="button" onClick={beginMfaSetup} className="bg-blue-600 hover:bg-blue-700">Set up authenticator</Button>}
+                  {mfaQrCode && <div className="rounded-lg border p-4 space-y-3"><p className="text-sm text-gray-700">Scan this QR code with Google Authenticator, Microsoft Authenticator, or another TOTP app.</p><img src={mfaQrCode} alt="Authenticator setup QR code" className="h-44 w-44" /><p className="text-xs text-gray-500 break-all">Manual setup key: {mfaSecret}</p><div className="flex gap-2"><Input value={mfaCode} onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" placeholder="6-digit code" /><Button type="button" onClick={verifyMfa} disabled={mfaCode.length !== 6}>Verify and enable</Button></div></div>}
+                  {mfaFactorId && !mfaQrCode && <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 p-4"><p className="text-sm font-medium text-green-800">Authenticator protection is enabled.</p><Button type="button" variant="outline" onClick={disableMfa}>Disable MFA</Button></div>}
+                </div>
+                <Separator />
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3"><KeyRound className="h-5 w-5 text-blue-600 mt-1" /><div><h3 className="font-semibold text-gray-900">Change password</h3><p className="text-sm text-gray-600">Enter your current password before choosing a new one.</p></div></div>
+                  <form onSubmit={changePassword} className="space-y-3"><Input type="password" placeholder="Current password" value={oldPassword} onChange={(event) => setOldPassword(event.target.value)} required /><Input type="password" placeholder="New password (minimum 8 characters)" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required /><Input type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required /><Button type="submit" variant="outline">Change password</Button></form>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

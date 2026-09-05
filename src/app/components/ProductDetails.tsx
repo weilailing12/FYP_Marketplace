@@ -134,9 +134,9 @@ export function ProductDetails() {
                     <User className="h-6 w-6" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 flex items-center text-lg">
+                    <button onClick={() => seller?.id && navigate(`/seller/${seller.id}`)} disabled={!seller} className="font-semibold text-gray-900 flex items-center text-lg hover:text-blue-600 disabled:hover:text-gray-900">
                       {seller ? seller.full_name : "Campus Student"}
-                    </h4>
+                    </button>
                   </div>
                 </div>
                 <Button onClick={() => navigate(seller?.id ? `/chat/${seller.id}` : '#')} className="bg-blue-600 hover:bg-blue-700" disabled={!seller}>

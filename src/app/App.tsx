@@ -18,6 +18,7 @@ import { AdminDashboard } from "./components/AdminDashboard";
 import { CartPage } from "./components/CartPage";
 import { CartProvider } from "./context/CartContext";
 import { SystemAnnouncements } from "./components/SystemAnnouncements";
+import { SellerProfile } from "./components/SellerProfile";
 import { supabase } from "../supabase";
 
 export default function App() {
@@ -84,6 +85,7 @@ export default function App() {
             <Route path="/" element={<Navigate to="/marketplace" replace />} />
             <Route path="/marketplace" element={<MarketplaceFeed />} />
             <Route path="/product/:productId" element={<ProductDetails />} />
+            <Route path="/seller/:sellerId" element={<SellerProfile />} />
             <Route path="/edit/:productId" element={<EditProduct />} />
             <Route path="/create" element={<CreateListing />} />
             <Route path="/chat/:sellerId" element={<ChatMeetup />} />
