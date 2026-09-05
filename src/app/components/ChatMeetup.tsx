@@ -88,7 +88,7 @@ export function ChatMeetup() {
         ? await supabase.from("orders").select("id, buyer_id, seller_id").eq("id", orderId).single()
         : await supabase.from("orders").select("id, buyer_id, seller_id").or(`and(buyer_id.eq.${session.user.id},seller_id.eq.${sellerId}),and(buyer_id.eq.${sellerId},seller_id.eq.${session.user.id})`).in("status", ["pending", "accepted", "completed"]).order("updated_at", { ascending: false }).limit(1).maybeSingle();
       if (order) {
-        if (order && order.seller_id === sellerId && (order.buyer_id === session.user.id || order.seller_id === session.user.id)) {
+        if (order && (order.buyer_id === session.user.id || order.seller_id === session.user.id) && (order.buyer_id === sellerId || order.seller_id === sellerId)) {
           setActiveOrderId(order.id);
           setIsBuyer(order.buyer_id === session.user.id);
           const { data: proposal } = await supabase.from("meetup_proposals").select("*").eq("order_id", order.id).maybeSingle();
@@ -197,16 +197,19 @@ export function ChatMeetup() {
     // Optional: Upload `attachedImage` file to supabase storage here if it's a real file.
     
     try {
-      const { error } = await supabase.from("messages").insert({
+      const { data: sentMessage, error } = await supabase.from("messages").insert({
         sender_id: currentUserId,
         receiver_id: sellerId,
         text: textToSend,
         image_url: attachedImage || null,
         is_meetup_proposal: isProposal
-      });
+      }).select().single();
 
       if (error) throw error;
 
+      if (sentMessage) {
+        setMessages((current) => current.some((message) => message.id === sentMessage.id) ? current : [...current, sentMessage as Message]);
+      }
       setInputText("");
       setAttachedImage(null);
       setShowMeetupModal(false);
