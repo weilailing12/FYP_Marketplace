@@ -177,6 +177,7 @@ export function ChatMeetup() {
   // Keep the view at the latest message unless the user is reading older messages.
   useEffect(() => {
     if (scrollRef.current && shouldScrollToLatest.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       requestAnimationFrame(() => {
         if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       });
@@ -193,7 +194,10 @@ export function ChatMeetup() {
   const scrollToLatest = () => {
     if (!scrollRef.current) return;
     shouldScrollToLatest.current = true;
-    scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    requestAnimationFrame(() => {
+      if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    });
     setShowLatestButton(false);
   };
 
@@ -340,7 +344,7 @@ export function ChatMeetup() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
           {/* Chat Side */}
-          <Card className="flex flex-col min-h-0 h-full">
+          <Card className="flex flex-col min-h-0 h-full" onClick={scrollToLatest}>
             <CardHeader className="border-b">
               <div className="flex items-center gap-3">
                 <Avatar><AvatarFallback className="bg-blue-600 text-white">{sellerName.charAt(0)}</AvatarFallback></Avatar>
@@ -350,7 +354,7 @@ export function ChatMeetup() {
               </div>
             </CardHeader>
             
-            <CardContent className="relative flex-1 basis-0 min-h-0 overflow-y-scroll p-4 space-y-4" ref={scrollRef} onScroll={handleMessageScroll} onClick={scrollToLatest}>
+            <CardContent className="relative flex-1 basis-0 min-h-0 overflow-y-scroll p-4 space-y-4" ref={scrollRef} onScroll={handleMessageScroll}>
               {messages.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-400">
                   <p>Start the conversation! Say hi 👋</p>
