@@ -226,6 +226,7 @@ export function ChatMeetup() {
       if (error) throw error;
 
       if (sentMessage) {
+        shouldScrollToLatest.current = true;
         setMessages((current) => current.some((message) => message.id === sentMessage.id) ? current : [...current, sentMessage as Message]);
       }
       setInputText("");
@@ -349,7 +350,7 @@ export function ChatMeetup() {
               </div>
             </CardHeader>
             
-            <CardContent className="relative flex-1 basis-0 min-h-0 overflow-y-scroll p-4 space-y-4" ref={scrollRef} onScroll={handleMessageScroll}>
+            <CardContent className="relative flex-1 basis-0 min-h-0 overflow-y-scroll p-4 space-y-4" ref={scrollRef} onScroll={handleMessageScroll} onClick={scrollToLatest}>
               {messages.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-400">
                   <p>Start the conversation! Say hi 👋</p>
