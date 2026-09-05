@@ -39,6 +39,15 @@ function getLocalDateString() {
   return `${year}-${month}-${day}`;
 }
 
+function formatMeetupTime(value: string | null) {
+  if (!value) return "Pickup time not set";
+  const [hours, minutes] = value.split(":").map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return value;
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
 export function ChatMeetup() {
   const navigate = useNavigate();
   const { sellerId } = useParams();
@@ -252,7 +261,18 @@ export function ChatMeetup() {
       status: bothAccepted ? "confirmed" : "pending",
       updated_at: new Date().toISOString(),
     }).eq("id", meetupProposal.id).select().single();
-    if (error) alert(error.message); else setMeetupProposal(data as MeetupProposal);
+    if (error) { alert(error.message); return; }
+    setMeetupProposal(data as MeetupProposal);
+    const confirmationText = bothAccepted
+      ? `Meetup confirmed: ${data.location || "Location not set"} on ${data.meetup_date || "date not set"} at ${formatMeetupTime(data.meetup_time)}`
+      : `${isBuyer ? "Buyer" : "Seller"} accepted the meetup proposal.`;
+    const { data: confirmationMessage } = await supabase.from("messages").insert({
+      sender_id: currentUserId,
+      receiver_id: sellerId,
+      text: confirmationText,
+      is_meetup_proposal: true,
+    }).select().single();
+    if (confirmationMessage) setMessages((current) => current.some((message) => message.id === confirmationMessage.id) ? current : [...current, confirmationMessage as Message]);
   };
 
   return (
@@ -338,7 +358,7 @@ export function ChatMeetup() {
                 ))
               )}
               {activeOrderId && <div className="flex justify-center py-4"><div className="text-center space-y-3">
-                {meetupProposal && <div className="rounded-lg border bg-green-50 p-3 text-left text-sm"><p className="font-semibold text-green-900">Meetup proposal</p><p>Location: {meetupProposal.location || "Pickup location not set"}</p><p>Date: {meetupProposal.meetup_date || "Pickup date not set"}</p><p>Time: {meetupProposal.meetup_time?.slice(0, 5) || "Pickup time not set"}</p><p className="mt-1 font-medium">{meetupProposal.status === "confirmed" ? "Both agreed" : `Buyer: ${meetupProposal.buyer_accepted ? "Accepted" : "Waiting"} · Seller: ${meetupProposal.seller_accepted ? "Accepted" : "Waiting"}`}</p></div>}
+                {meetupProposal && <div className="rounded-lg border bg-green-50 p-3 text-left text-sm"><p className="font-semibold text-green-900">Meetup proposal</p><p>Location: {meetupProposal.location || "Pickup location not set"}</p><p>Date: {meetupProposal.meetup_date || "Pickup date not set"}</p><p>Time: {formatMeetupTime(meetupProposal.meetup_time)}</p><p className="mt-1 font-medium">{meetupProposal.status === "confirmed" ? "Both agreed" : `Buyer: ${meetupProposal.buyer_accepted ? "Accepted" : "Waiting"} · Seller: ${meetupProposal.seller_accepted ? "Accepted" : "Waiting"}`}</p></div>}
                 {meetupProposal?.status !== "confirmed" && <div className="flex justify-center gap-2"><Button onClick={() => setShowMeetupModal(true)} variant="outline" className="border-blue-600 text-blue-600"><Calendar className="h-4 w-4 mr-2" /> {meetupProposal ? "Edit Meetup Proposal" : "Propose Meetup"}</Button>{meetupProposal && !(isBuyer ? meetupProposal.buyer_accepted : meetupProposal.seller_accepted) && <Button onClick={acceptMeetupProposal} className="bg-green-600 hover:bg-green-700">Accept</Button>}</div>}
               </div></div>}
             </CardContent>
