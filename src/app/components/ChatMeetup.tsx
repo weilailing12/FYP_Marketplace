@@ -31,6 +31,14 @@ interface MeetupProposal {
   status: "pending" | "confirmed" | "cancelled";
 }
 
+function getLocalDateString() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function ChatMeetup() {
   const navigate = useNavigate();
   const { sellerId } = useParams();
@@ -74,7 +82,7 @@ export function ChatMeetup() {
         if (order && order.seller_id === sellerId && (order.buyer_id === session.user.id || order.seller_id === session.user.id)) {
           setActiveOrderId(order.id);
           setIsBuyer(order.buyer_id === session.user.id);
-          const { data: proposal } = await supabase.from("meetup_proposals").select("*").eq("order_id", orderId).maybeSingle();
+          const { data: proposal } = await supabase.from("meetup_proposals").select("*").eq("order_id", order.id).maybeSingle();
           if (proposal) {
             setMeetupProposal(proposal as MeetupProposal);
             setMeetupLocation(proposal.location || "");
@@ -204,7 +212,10 @@ export function ChatMeetup() {
       alert("Please choose a pickup point, date, and time.");
       return;
     }
-    if (new Date(`${meetupDate}T${meetupTime}`).getTime() <= Date.now()) {
+    const [year, month, day] = meetupDate.split("-").map(Number);
+    const [hours, minutes] = meetupTime.split(":").map(Number);
+    const selectedDateTime = new Date(year, month - 1, day, hours, minutes);
+    if (!Number.isFinite(selectedDateTime.getTime()) || selectedDateTime.getTime() <= Date.now()) {
       alert("Please choose a future date and time.");
       return;
     }
@@ -264,7 +275,7 @@ export function ChatMeetup() {
 
               <div className="space-y-2">
                 <Label>Preferred Date</Label>
-                  <Input type="date" min={new Date().toISOString().split("T")[0]} value={meetupDate} onChange={(event) => setMeetupDate(event.target.value)} />
+                  <Input type="date" min={getLocalDateString()} value={meetupDate} onChange={(event) => setMeetupDate(event.target.value)} />
               </div>
 
               <div className="space-y-2">
