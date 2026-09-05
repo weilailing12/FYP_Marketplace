@@ -365,7 +365,8 @@ export function ChatMeetup() {
               </div>
             </CardHeader>
             
-            <CardContent className="relative flex-1 basis-0 h-0 min-h-0 overflow-y-scroll p-4 space-y-4" ref={scrollRef} onScroll={handleMessageScroll}>
+            <CardContent className="flex-1 basis-0 h-0 min-h-0 p-0 overflow-hidden">
+              <div className="relative h-full overflow-y-scroll p-4 space-y-4" ref={scrollRef} onScroll={handleMessageScroll}>
               {messages.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-400">
                   <p>Start the conversation! Say hi 👋</p>
@@ -387,7 +388,8 @@ export function ChatMeetup() {
                   </div>
                 ))
               )}
-              {showLatestButton && <Button type="button" size="sm" onClick={scrollToLatest} className="sticky bottom-2 left-1/2 -translate-x-1/2 z-10 shadow-md bg-blue-600 hover:bg-blue-700">↓ Latest messages</Button>}
+                {showLatestButton && <Button type="button" size="sm" onClick={scrollToLatest} className="sticky bottom-2 left-1/2 -translate-x-1/2 z-10 shadow-md bg-blue-600 hover:bg-blue-700">↓ Latest messages</Button>}
+              </div>
             </CardContent>
 
             <div className="p-4 border-t bg-white">
