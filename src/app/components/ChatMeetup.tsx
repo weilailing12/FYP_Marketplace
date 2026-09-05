@@ -69,6 +69,7 @@ export function ChatMeetup() {
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const shouldScrollToLatest = useRef(true);
 
   // 1. Initialize Auth and Fetch Messages
   useEffect(() => {
@@ -172,12 +173,18 @@ export function ChatMeetup() {
     };
   }, [currentUserId, sellerId, activeOrderId]);
 
-  // 3. Auto-scroll to bottom when new messages arrive
+  // Keep the view at the latest message unless the user is reading older messages.
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && shouldScrollToLatest.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const handleMessageScroll = () => {
+    if (!scrollRef.current) return;
+    const distanceFromBottom = scrollRef.current.scrollHeight - scrollRef.current.scrollTop - scrollRef.current.clientHeight;
+    shouldScrollToLatest.current = distanceFromBottom < 80;
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -237,6 +244,10 @@ export function ChatMeetup() {
   const saveMeetupProposal = async () => {
     if (!currentUserId || !activeOrderId) {
       alert("A meetup proposal is available after an order request is created.");
+      return;
+    }
+    if (meetupProposal?.status === "confirmed") {
+      alert("This meetup is already confirmed and cannot be changed.");
       return;
     }
     const { data, error } = await supabase.from("meetup_proposals").upsert({
@@ -323,12 +334,11 @@ export function ChatMeetup() {
                 <Avatar><AvatarFallback className="bg-blue-600 text-white">{sellerName.charAt(0)}</AvatarFallback></Avatar>
                 <div>
                   <CardTitle className="text-lg">{sellerName}</CardTitle>
-                  <p className="text-sm text-gray-500">Active now</p>
                 </div>
               </div>
             </CardHeader>
             
-            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
+            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef} onScroll={handleMessageScroll}>
               {messages.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-400">
                   <p>Start the conversation! Say hi 👋</p>
