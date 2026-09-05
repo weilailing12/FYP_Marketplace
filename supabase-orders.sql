@@ -44,6 +44,14 @@ create index if not exists orders_buyer_id_idx on public.orders(buyer_id);
 create index if not exists orders_seller_id_idx on public.orders(seller_id);
 create index if not exists orders_product_id_idx on public.orders(product_id);
 
+-- Read state for incoming chat notifications.
+alter table public.messages add column if not exists read_at timestamptz;
+drop policy if exists "Users can mark received messages as read" on public.messages;
+create policy "Users can mark received messages as read"
+  on public.messages for update to authenticated
+  using (receiver_id = auth.uid())
+  with check (receiver_id = auth.uid());
+
 -- Messages: only the sender and receiver can read or send a message.
 alter table public.messages enable row level security;
 

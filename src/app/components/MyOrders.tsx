@@ -16,6 +16,11 @@ export function MyOrders() {
   const loadOrders = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/login"); return; }
+    const terminalOrders = await supabase.from("orders").select("id").eq("buyer_id", user.id).in("status", ["accepted", "rejected", "completed"]);
+    if (terminalOrders.data) {
+      localStorage.setItem(`campustrade-seen-orders:${user.id}`, JSON.stringify(terminalOrders.data.map((order) => order.id)));
+      window.dispatchEvent(new Event("campustrade-orders-seen"));
+    }
     const { data } = await supabase.from("orders").select("id, product_id, seller_id, price, status, created_at, updated_at").eq("buyer_id", user.id).order("updated_at", { ascending: false });
     const productIds = [...new Set((data || []).map((order) => order.product_id))];
     const sellerIds = [...new Set((data || []).map((order) => order.seller_id))];

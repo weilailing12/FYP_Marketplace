@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Label } from "./ui/label";
-import { Send, MapPin, Paperclip, X, Calendar, Clock } from "lucide-react";
+import { Send, Paperclip, X, Calendar, Clock } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { supabase } from "../../supabase";
 import { useNavigate, useParams } from "react-router-dom";
@@ -28,8 +28,8 @@ export function ChatMeetup() {
   const [sellerName, setSellerName] = useState("Loading...");
 
   const [showMeetupModal, setShowMeetupModal] = useState(false);
-  const [meetupType, setMeetupType] = useState("pickup");
-  const [meetupLocation, setMeetupLocation] = useState("library");
+  const [meetupLocation, setMeetupLocation] = useState("Main Library");
+  const [meetupDate, setMeetupDate] = useState("");
   const [meetupTime, setMeetupTime] = useState("");
 
   const [inputText, setInputText] = useState("");
@@ -68,6 +68,8 @@ export function ChatMeetup() {
 
       if (error) console.error("Error fetching messages:", error);
       if (chatHistory) setMessages(chatHistory);
+      await supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("sender_id", sellerId).eq("receiver_id", session.user.id).is("read_at", null);
+      window.dispatchEvent(new Event("campustrade-messages-read"));
     }
     initChat();
   }, [sellerId, navigate]);
@@ -148,7 +150,11 @@ export function ChatMeetup() {
   };
 
   const confirmMeetup = () => {
-    const proposalText = `📅 Proposed ${meetupType.toUpperCase()}:\n📍 Location: ${meetupLocation}\n⏰ Time: ${meetupTime}`;
+    if (!meetupLocation || !meetupDate || !meetupTime) {
+      alert("Please choose a pickup point, date, and time.");
+      return;
+    }
+    const proposalText = `📅 Proposed Meetup\n📍 Pickup point: ${meetupLocation}\n📆 Preferred date: ${meetupDate}\n⏰ Preferred time: ${meetupTime}`;
     handleSendMessage(proposalText, true);
   };
 
@@ -166,27 +172,21 @@ export function ChatMeetup() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Service Type</Label>
-                <Select value={meetupType} onValueChange={setMeetupType}>
+                <Label>Pickup Point</Label>
+                <Select value={meetupLocation} onValueChange={setMeetupLocation}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pickup">Self Pickup</SelectItem>
-                    <SelectItem value="dropoff">Seller Dropoff</SelectItem>
+                    <SelectItem value="Main Library">Main Library</SelectItem>
+                    <SelectItem value="Café">Café</SelectItem>
+                    <SelectItem value="Student Centre">Student Centre</SelectItem>
+                    <SelectItem value="Other">Other (discuss in chat)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label>Campus Pickup Point</Label>
-                <Select value={meetupLocation} onValueChange={setMeetupLocation}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Library">Main Library (Safe Zone)</SelectItem>
-                    <SelectItem value="BlockG">Block G Café</SelectItem>
-                    <SelectItem value="Gym">Campus Gym Entrance</SelectItem>
-                    <SelectItem value="StudentPavilion">Student Pavilion</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Preferred Date</Label>
+                <Input type="date" value={meetupDate} onChange={(event) => setMeetupDate(event.target.value)} />
               </div>
 
               <div className="space-y-2">
@@ -249,7 +249,7 @@ export function ChatMeetup() {
               )}
               <div className="flex justify-center py-4">
                 <Button onClick={() => setShowMeetupModal(true)} variant="outline" className="border-blue-600 text-blue-600">
-                  <Calendar className="h-4 w-4 mr-2" /> Propose Meetup / Reservation
+                  <Calendar className="h-4 w-4 mr-2" /> Propose Meetup
                 </Button>
               </div>
             </CardContent>
@@ -270,19 +270,6 @@ export function ChatMeetup() {
             </div>
           </Card>
 
-          {/* Map Side (UTAR Kampar Mockup) */}
-          <Card className="hidden lg:block h-full">
-            <CardHeader><CardTitle>UTAR Kampar Safe Meetup Zones</CardTitle></CardHeader>
-            <CardContent className="p-0 relative h-[calc(100%-80px)] bg-blue-50/50">
-               <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                  <div className="text-center p-10 border-2 border-dashed border-gray-300 rounded-xl">
-                    <MapPin className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                    <p>Interactive Campus Map View</p>
-                    <Badge variant="outline" className="mt-2 bg-white">Kampar Campus</Badge>
-                  </div>
-               </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

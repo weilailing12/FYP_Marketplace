@@ -12,6 +12,7 @@ export function Navbar() {
   const location = useLocation();
   const { itemCount } = useCart();
   const [orderNoticeCount, setOrderNoticeCount] = useState(0);
+  const [messageNoticeCount, setMessageNoticeCount] = useState(0);
   
   const [localQuery, setLocalQuery] = useState(searchParams.get("q") || "");
   const debounceTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -26,12 +27,30 @@ export function Navbar() {
     async function loadOrderNotices() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      const seenOrders = JSON.parse(localStorage.getItem(`campustrade-seen-orders:${user.id}`) || "[]") as string[];
       const { data } = await supabase.from("orders").select("id").eq("buyer_id", user.id).in("status", ["accepted", "rejected", "completed"]);
-      setOrderNoticeCount(data?.length || 0);
+      setOrderNoticeCount((data || []).filter((order) => !seenOrders.includes(order.id)).length);
       channel = supabase.channel(`navbar-orders-${user.id}`).on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `buyer_id=eq.${user.id}` }, loadOrderNotices).subscribe();
     }
     loadOrderNotices();
-    return () => { if (channel) supabase.removeChannel(channel); };
+    const refreshSeenOrders = () => loadOrderNotices();
+    window.addEventListener("campustrade-orders-seen", refreshSeenOrders);
+    return () => { if (channel) supabase.removeChannel(channel); window.removeEventListener("campustrade-orders-seen", refreshSeenOrders); };
+  }, []);
+
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | undefined;
+    async function loadMessageNotices() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("messages").select("id").eq("receiver_id", user.id).is("read_at", null);
+      setMessageNoticeCount(data?.length || 0);
+      channel = supabase.channel(`navbar-messages-${user.id}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` }, loadMessageNotices).on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` }, loadMessageNotices).subscribe();
+    }
+    loadMessageNotices();
+    const refreshMessages = () => loadMessageNotices();
+    window.addEventListener("campustrade-messages-read", refreshMessages);
+    return () => { if (channel) supabase.removeChannel(channel); window.removeEventListener("campustrade-messages-read", refreshMessages); };
   }, []);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,8 +106,9 @@ export function Navbar() {
               <ShoppingCart className="h-4 w-4" />
               {itemCount > 0 && <span className="absolute -right-2 -top-2 min-w-5 h-5 rounded-full bg-blue-600 px-1 text-xs leading-5 text-white">{itemCount}</span>}
             </Button>
-            <Button variant="outline" size="icon" onClick={() => navigate("/messages")} aria-label="Open messages">
+            <Button variant="outline" size="icon" onClick={() => navigate("/messages")} aria-label={`Open messages with ${messageNoticeCount} unread`} className="relative">
               <MessageCircle className="h-4 w-4" />
+              {messageNoticeCount > 0 && <span className="absolute -right-2 -top-2 min-w-5 h-5 rounded-full bg-green-600 px-1 text-xs leading-5 text-white">{messageNoticeCount}</span>}
             </Button>
             <Button variant="outline" size="icon" onClick={() => navigate("/orders")} aria-label={`Open orders with ${orderNoticeCount} updates`} className="relative">
               <Bell className="h-4 w-4" />
