@@ -240,6 +240,8 @@ export function ChatMeetup() {
       if (sentMessage) {
         shouldScrollToLatest.current = true;
         setMessages((current) => current.some((message) => message.id === sentMessage.id) ? current : [...current, sentMessage as Message]);
+        setTimeout(scrollToLatest, 0);
+        setTimeout(scrollToLatest, 100);
       }
       setInputText("");
       setAttachedImage(null);
@@ -350,9 +352,9 @@ export function ChatMeetup() {
       <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 py-4 flex flex-col">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">← Back</Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0 overflow-hidden">
           {/* Chat Side */}
-          <Card className="flex flex-col min-h-0 h-full" onClick={scrollToLatest}>
+          <Card className="flex flex-col min-h-0 h-full overflow-hidden" onClick={scrollToLatest}>
             <CardHeader className="border-b">
               <div className="flex items-center gap-3">
                 <Avatar><AvatarFallback className="bg-blue-600 text-white">{sellerName.charAt(0)}</AvatarFallback></Avatar>
@@ -362,7 +364,7 @@ export function ChatMeetup() {
               </div>
             </CardHeader>
             
-            <CardContent className="relative flex-1 basis-0 min-h-0 overflow-y-scroll p-4 space-y-4" ref={scrollRef} onScroll={handleMessageScroll}>
+            <CardContent className="relative flex-1 basis-0 h-0 min-h-0 overflow-y-scroll p-4 space-y-4" ref={scrollRef} onScroll={handleMessageScroll}>
               {messages.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-400">
                   <p>Start the conversation! Say hi 👋</p>
