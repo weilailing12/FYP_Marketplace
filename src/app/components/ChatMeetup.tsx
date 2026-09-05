@@ -280,7 +280,7 @@ export function ChatMeetup() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 relative">
+    <div className="h-[calc(100vh-4rem)] overflow-hidden bg-gray-50 relative">
       {/* --- MEETUP RESERVATION MODAL --- */}
       {showMeetupModal && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
@@ -323,12 +323,12 @@ export function ChatMeetup() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 py-4 flex flex-col">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">← Back</Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-220px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
           {/* Chat Side */}
-          <Card className="flex flex-col h-full">
+          <Card className="flex flex-col min-h-0 h-full">
             <CardHeader className="border-b">
               <div className="flex items-center gap-3">
                 <Avatar><AvatarFallback className="bg-blue-600 text-white">{sellerName.charAt(0)}</AvatarFallback></Avatar>
@@ -338,7 +338,7 @@ export function ChatMeetup() {
               </div>
             </CardHeader>
             
-            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef} onScroll={handleMessageScroll}>
+            <CardContent className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4" ref={scrollRef} onScroll={handleMessageScroll}>
               {messages.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-400">
                   <p>Start the conversation! Say hi 👋</p>
@@ -378,7 +378,7 @@ export function ChatMeetup() {
             </div>
           </Card>
 
-          {activeOrderId && <Card className="h-fit">
+          {activeOrderId && <Card className="h-fit lg:max-h-full overflow-y-auto">
             <CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5 text-blue-600" /> Meetup</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               {meetupProposal ? <div className="rounded-lg border bg-green-50 p-4 text-sm space-y-1">
