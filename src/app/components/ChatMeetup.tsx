@@ -119,7 +119,15 @@ export function ChatMeetup() {
         .order("created_at", { ascending: true });
 
       if (error) console.error("Error fetching messages:", error);
-      if (chatHistory) setMessages(chatHistory);
+      if (chatHistory) {
+        shouldScrollToLatest.current = true;
+        setMessages(chatHistory);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+          });
+        });
+      }
       await supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("sender_id", sellerId).eq("receiver_id", session.user.id).is("read_at", null);
       window.dispatchEvent(new Event("campustrade-messages-read"));
     }
