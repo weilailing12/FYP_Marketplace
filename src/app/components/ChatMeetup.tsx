@@ -70,6 +70,7 @@ export function ChatMeetup() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const shouldScrollToLatest = useRef(true);
+  const [showLatestButton, setShowLatestButton] = useState(false);
 
   // 1. Initialize Auth and Fetch Messages
   useEffect(() => {
@@ -176,7 +177,9 @@ export function ChatMeetup() {
   // Keep the view at the latest message unless the user is reading older messages.
   useEffect(() => {
     if (scrollRef.current && shouldScrollToLatest.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      requestAnimationFrame(() => {
+        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      });
     }
   }, [messages]);
 
@@ -184,6 +187,14 @@ export function ChatMeetup() {
     if (!scrollRef.current) return;
     const distanceFromBottom = scrollRef.current.scrollHeight - scrollRef.current.scrollTop - scrollRef.current.clientHeight;
     shouldScrollToLatest.current = distanceFromBottom < 80;
+    setShowLatestButton(distanceFromBottom >= 80);
+  };
+
+  const scrollToLatest = () => {
+    if (!scrollRef.current) return;
+    shouldScrollToLatest.current = true;
+    scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    setShowLatestButton(false);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -338,7 +349,7 @@ export function ChatMeetup() {
               </div>
             </CardHeader>
             
-            <CardContent className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4" ref={scrollRef} onScroll={handleMessageScroll}>
+            <CardContent className="relative flex-1 basis-0 min-h-0 overflow-y-scroll p-4 space-y-4" ref={scrollRef} onScroll={handleMessageScroll}>
               {messages.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-400">
                   <p>Start the conversation! Say hi 👋</p>
@@ -360,6 +371,7 @@ export function ChatMeetup() {
                   </div>
                 ))
               )}
+              {showLatestButton && <Button type="button" size="sm" onClick={scrollToLatest} className="sticky bottom-2 left-1/2 -translate-x-1/2 z-10 shadow-md bg-blue-600 hover:bg-blue-700">↓ Latest messages</Button>}
             </CardContent>
 
             <div className="p-4 border-t bg-white">
