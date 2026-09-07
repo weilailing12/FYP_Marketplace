@@ -1,243 +1,195 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../supabase";
 
-// Helper to convert the image file into Base64 for the Gemini API
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      // Extract the raw base64 string without the data URI prefix
-      const base64String = (reader.result as string).split(',')[1];
-      resolve(base64String);
-    };
-    reader.onerror = (error) => reject(error);
-    reader.readAsDataURL(file);
-  });
-};
-
 export const Register = () => {
   const navigate = useNavigate();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [ocrProgress, setOcrProgress] = useState<string>("");
-  
-  const [formData, setFormData] = useState({ 
-    name: "", 
-    studentId: "", 
+  const [formData, setFormData] = useState({
     email: "",
-    password: "" 
+    password: "",
+    name: "",
+    studentId: "",
   });
+  const [isScanning, setIsScanning] = useState(false);
 
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    setError(null);
-    setIsProcessing(true);
-    setOcrProgress("Analyzing ID with Gemini AI...");
-
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return previewUrl;
-    });
+    setIsScanning(true);
 
     try {
-      // 1. Convert image to Base64 format
-      const base64Data = await fileToBase64(file);
-      
-      // 2. Fetch the API key from your Vite environment variables
-      const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY; 
-      if (!GEMINI_API_KEY) throw new Error("Gemini API key is missing from .env");
-
-      // 3. The Strict Gemini AI Prompt
-      const promptText = `
-        You are an automated university identity verification system for Universiti Tunku Abdul Rahman (UTAR). 
-        Analyze the provided image of a student ID card. 
-        1. Verify that the card is a valid UTAR student ID.
-        2. Extract the exact student name and student ID number.
-        3. If the card does not belong to UTAR, is unreadable, or is fake, mark is_utar_id as false.
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        const base64Image = (reader.result as string).split(",")[1];
         
-        Return ONLY a JSON object exactly matching this structure:
-        {
-          "is_utar_id": boolean,
-          "student_name": "extracted name or null",
-          "student_id": "extracted ID or null",
-          "error_message": "reason for failure or null"
-        }
-      `;
-
-      // 4. Send request to Google AI Studio REST API
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: promptText },
-              { inline_data: { mime_type: file.type, data: base64Data } }
-            ]
-          }],
-          generation_config: {
-            response_mime_type: "application/json", // Forces Gemini to return pure JSON
-            temperature: 0.1 // Keeps the AI strict and precise
+        const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: "Extract the exact student name (keeping it in EXACTLY the same ALL CAPS format as printed on the card) and student ID number from this university ID card. Return ONLY a valid JSON object with the keys 'student_name' and 'student_id'." },
+                    {
+                      inline_data: {
+                        mime_type: file.type,
+                        data: base64Image,
+                      },
+                    },
+                  ],
+                },
+              ],
+            }),
           }
-        })
-      });
+        );
 
-      const result = await response.json();
-      
-      if (result.error) throw new Error(result.error.message);
+        const data = await response.json();
+        
+        // Clean up the response to parse the JSON securely
+        let aiText = data.candidates[0].content.parts[0].text;
+        aiText = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
+        const aiData = JSON.parse(aiText);
 
-      // 5. Parse the JSON response from Gemini
-      const aiResponseText = result.candidates[0].content.parts[0].text;
-      const aiData = JSON.parse(aiResponseText);
-
-      console.log("Gemini AI Result:", aiData);
-
-      // 6. Enforce UTAR ID rules
-      if (aiData.is_utar_id && aiData.student_id) {
-        setFormData({
-          ...formData,
-          name: aiData.student_name || "",
-          studentId: aiData.student_id
-        });
-        setOcrProgress("UTAR ID Verified Successfully!");
-      } else {
-        setError(aiData.error_message || "Verification failed: This does not appear to be a valid UTAR Student ID.");
-        setOcrProgress("");
-      }
-
-    } catch (e: any) {
-      console.error(e);
-      setError("Failed to verify image with AI. Please try again.");
-      setOcrProgress("");
+        setFormData((prev) => ({
+          ...prev,
+          name: (aiData.student_name || "").toUpperCase(),
+          studentId: aiData.student_id || "",
+        }));
+        
+        alert("ID scanned successfully!");
+      };
+    } catch (error) {
+      console.error("Scanning error:", error);
+      alert("Failed to verify image with AI. Please try again.");
     } finally {
-      setIsProcessing(false);
+      setIsScanning(false);
     }
   };
 
-  const handleFinishRegistration = async () => {
-    if (!formData.email || !formData.password) {
-      setError("Please enter your email and password.");
+  const handleFinishRegistration = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // 1. Enforce UTAR email domain
+    if (!formData.email.endsWith("@1utar.my")) {
+      alert("Please use a valid @1utar.my UTAR email address.");
       return;
     }
 
-    // UTAR EMAIL ENFORCEMENT - Your original code was perfect!
-    if (!formData.email.toLowerCase().endsWith('@1utar.my')) {
-      setError("You must use a valid @1utar.my student email address to register.");
+    // 2. Enforce AI scanning
+    if (!formData.name || !formData.studentId) {
+      alert("Please upload and scan your Student ID card first.");
       return;
     }
-
-    setIsProcessing(true);
-    setError(null);
 
     try {
+      // 3. Supabase Auth Signup
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
-            full_name: formData.name,
+            full_name: formData.name, // Already capitalized from the AI scan
             student_id: formData.studentId,
-          }
-        }
+          },
+        },
       });
 
       if (signUpError) throw signUpError;
 
-      alert("Registration successful! You can now log in.");
+      // 4. Verification Update (Set is_verified to TRUE)
+      if (data.user) {
+        await supabase
+          .from("profiles")
+          .update({ is_verified: true })
+          .eq("id", data.user.id);
+      }
+
+      alert("Registration and ID Verification successful! You can now log in.");
       navigate("/login");
-    } catch (e: any) {
-      setError(e.message || "Network error while registering.");
-    } finally {
-      setIsProcessing(false);
+    } catch (error: any) {
+      alert(error.message);
     }
   };
 
   return (
-    <div className="register-container">
-      <div className="register-card">
-        <h2 className="register-title">Student ID Verification</h2>
-        <p className="register-subtitle">Please upload a clear photo of your UTAR Student ID.</p>
+    <div style={{ maxWidth: "400px", margin: "0 auto", padding: "20px" }}>
+      <h2>Student Registration</h2>
+      
+      <div style={{ marginBottom: "20px" }}>
+        <label>Upload Student ID Card</label>
+        <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "block", marginTop: "5px" }} />
+        {isScanning && <p style={{ color: "blue" }}>Scanning ID with AI... Please wait.</p>}
+      </div>
 
-        <div className="upload-section">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleUpload}
-            className="upload-input"
-          />
-
-          {isProcessing && <p className="text-blue-600 font-medium my-2">{ocrProgress}</p>}
-          {error && <p className="error-message" style={{ color: "red", fontWeight: "bold", marginTop: "10px" }}>{error}</p>}
-          {!isProcessing && !error && ocrProgress && <p className="text-green-600 font-medium my-2">{ocrProgress}</p>}
-
-          {imagePreview && (
-            <div className="image-preview">
-              <img src={imagePreview} alt="Preview" style={{ maxWidth: "100%", marginTop: "10px", borderRadius: "8px" }} />
-            </div>
-          )}
-        </div>
-
-        <div className="form-section" style={{ marginTop: "20px" }}>
+      <form onSubmit={handleFinishRegistration}>
+        <div style={{ marginBottom: "15px" }}>
           <label>Full Name (From ID)</label>
           <input
             type="text"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            style={{ display: "block", width: "100%", marginBottom: "10px" }}
+            readOnly
             placeholder="Auto-filled by AI"
+            style={{
+              backgroundColor: "#f3f4f6",
+              cursor: "not-allowed",
+              display: "block",
+              width: "100%",
+              padding: "8px",
+              marginTop: "5px"
+            }}
           />
+        </div>
 
-          <label>Student ID Status</label>
+        <div style={{ marginBottom: "15px" }}>
+          <label>Student ID</label>
           <input
             type="text"
             value={formData.studentId}
             readOnly
-            style={{ backgroundColor: "#f3f4f6", cursor: "not-allowed", display: "block", width: "100%", marginBottom: "10px" }}
-            placeholder="Upload UTAR ID to verify"
+            placeholder="Auto-filled by AI"
+            style={{
+              backgroundColor: "#f3f4f6",
+              cursor: "not-allowed",
+              display: "block",
+              width: "100%",
+              padding: "8px",
+              marginTop: "5px"
+            }}
           />
+        </div>
 
-          <label>Student Email (@1utar.my)</label>
+        <div style={{ marginBottom: "15px" }}>
+          <label>UTAR Email</label>
           <input
             type="email"
+            required
+            placeholder="example@1utar.my"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            style={{ display: "block", width: "100%", marginBottom: "10px" }}
-            placeholder="student@1utar.my"
+            style={{ display: "block", width: "100%", padding: "8px", marginTop: "5px" }}
           />
+        </div>
 
+        <div style={{ marginBottom: "15px" }}>
           <label>Password</label>
           <input
             type="password"
+            required
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            style={{ display: "block", width: "100%", marginBottom: "20px" }}
-            placeholder="Create a strong password"
+            style={{ display: "block", width: "100%", padding: "8px", marginTop: "5px" }}
           />
-
-          <button
-            onClick={handleFinishRegistration}
-            className="register-button"
-            disabled={isProcessing || !formData.studentId}
-            style={{ width: "100%", padding: "10px", backgroundColor: (!formData.studentId ? "#ccc" : "#007bff"), color: "white", cursor: (!formData.studentId ? "not-allowed" : "pointer"), borderRadius: "6px", fontWeight: "bold" }}
-          >
-            Create Account
-          </button>
-
-          <button
-            onClick={() => navigate("/login")}
-            className="link-button"
-            style={{ display: "block", marginTop: "16px", width: "100%", textAlign: "center", background: "none", border: "none", color: "#007bff", cursor: "pointer" }}
-            disabled={isProcessing}
-          >
-            Back to Login
-          </button>
         </div>
-      </div>
+
+        <button type="submit" style={{ width: "100%", padding: "10px", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>
+          Register Account
+        </button>
+      </form>
     </div>
   );
 };
