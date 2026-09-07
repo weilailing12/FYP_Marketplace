@@ -1,7 +1,20 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Tesseract from 'tesseract.js';
 import { supabase } from "../../supabase";
+
+// Helper to convert the image file into Base64 for the Gemini API
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Extract the raw base64 string without the data URI prefix
+      const base64String = (reader.result as string).split(',')[1];
+      resolve(base64String);
+    };
+    reader.onerror = (error) => reject(error);
+    reader.readAsDataURL(file);
+  });
+};
 
 export const Register = () => {
   const navigate = useNavigate();
@@ -23,7 +36,7 @@ export const Register = () => {
 
     setError(null);
     setIsProcessing(true);
-    setOcrProgress("Starting OCR scanner...");
+    setOcrProgress("Analyzing ID with Gemini AI...");
 
     const previewUrl = URL.createObjectURL(file);
     setImagePreview((prev) => {
@@ -32,69 +45,75 @@ export const Register = () => {
     });
 
     try {
-      const result = await Tesseract.recognize(file, 'eng', {
-        logger: m => {
-          if (m.status === "recognizing text") {
-            setOcrProgress(`Scanning ID... ${Math.round(m.progress * 100)}%`);
-          }
+      // 1. Convert image to Base64 format
+      const base64Data = await fileToBase64(file);
+      
+      // 2. Fetch the API key from your Vite environment variables
+      const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY; 
+      if (!GEMINI_API_KEY) throw new Error("Gemini API key is missing from .env");
+
+      // 3. The Strict Gemini AI Prompt
+      const promptText = `
+        You are an automated university identity verification system for Universiti Tunku Abdul Rahman (UTAR). 
+        Analyze the provided image of a student ID card. 
+        1. Verify that the card is a valid UTAR student ID.
+        2. Extract the exact student name and student ID number.
+        3. If the card does not belong to UTAR, is unreadable, or is fake, mark is_utar_id as false.
+        
+        Return ONLY a JSON object exactly matching this structure:
+        {
+          "is_utar_id": boolean,
+          "student_name": "extracted name or null",
+          "student_id": "extracted ID or null",
+          "error_message": "reason for failure or null"
         }
+      `;
+
+      // 4. Send request to Google AI Studio REST API
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: promptText },
+              { inline_data: { mime_type: file.type, data: base64Data } }
+            ]
+          }],
+          generation_config: {
+            response_mime_type: "application/json", // Forces Gemini to return pure JSON
+            temperature: 0.1 // Keeps the AI strict and precise
+          }
+        })
       });
+
+      const result = await response.json();
       
-      const text = result.data.text.toUpperCase();
-      console.log("OCR Result:", text);
-      
-      // Split text into lines to process it similarly to the python backend
-      const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      if (result.error) throw new Error(result.error.message);
 
-      let studentId = "";
-      let name = "";
+      // 5. Parse the JSON response from Gemini
+      const aiResponseText = result.candidates[0].content.parts[0].text;
+      const aiData = JSON.parse(aiResponseText);
 
-      // 1. Look for the UTAR ID format (e.g., 22ACB07233)
-      // Regex explanation: 2 digits, 3 letters, 5 digits
-      const idPattern = /\d{2}[A-Z]{3}\d{5}/;
+      console.log("Gemini AI Result:", aiData);
 
-      for (let i = 0; i < lines.length; i++) {
-        const match = lines[i].match(idPattern);
-        if (match) {
-          studentId = match[0];
-          // On this specific ID card, the name is usually the line right above the ID
-          if (i > 0) {
-            // Remove punctuation and numbers which often get accidentally scanned before the name
-            name = lines[i - 1].replace(/[^A-Za-z\s]/g, '').trim();
-            
-            // Clean up multiple spaces
-            name = name.replace(/\s+/g, ' ');
-          }
-          break;
-        }
-      }
-
-      // 2. Fallback: if it didn't find the alphanumeric one, look for the 7-digit one under the barcode
-      if (!studentId) {
-        const backupPattern = /\b\d{7}\b/;
-        for (let i = 0; i < lines.length; i++) {
-          const backupMatch = lines[i].match(backupPattern);
-          if (backupMatch) {
-            studentId = backupMatch[0];
-            break;
-          }
-        }
-      }
-
-      if (studentId) {
+      // 6. Enforce UTAR ID rules
+      if (aiData.is_utar_id && aiData.student_id) {
         setFormData({
           ...formData,
-          name: name || "Verified Student", 
-          studentId: studentId 
+          name: aiData.student_name || "",
+          studentId: aiData.student_id
         });
-        setOcrProgress("ID Verified Successfully!");
+        setOcrProgress("UTAR ID Verified Successfully!");
       } else {
-        setError("Could not detect a valid Student ID in the image. Please upload a clearer photo.");
+        setError(aiData.error_message || "Verification failed: This does not appear to be a valid UTAR Student ID.");
         setOcrProgress("");
       }
-    } catch (e) {
+
+    } catch (e: any) {
       console.error(e);
-      setError("Failed to process image.");
+      setError("Failed to verify image with AI. Please try again.");
+      setOcrProgress("");
     } finally {
       setIsProcessing(false);
     }
@@ -106,6 +125,7 @@ export const Register = () => {
       return;
     }
 
+    // UTAR EMAIL ENFORCEMENT - Your original code was perfect!
     if (!formData.email.toLowerCase().endsWith('@1utar.my')) {
       setError("You must use a valid @1utar.my student email address to register.");
       return;
@@ -128,16 +148,6 @@ export const Register = () => {
 
       if (signUpError) throw signUpError;
 
-      // Create a profile for the user in the database
-      if (data.user) {
-        await supabase.from('profiles').insert({
-          id: data.user.id,
-          full_name: formData.name,
-          student_id: formData.studentId,
-          is_verified: true
-        });
-      }
-
       alert("Registration successful! You can now log in.");
       navigate("/login");
     } catch (e: any) {
@@ -151,7 +161,7 @@ export const Register = () => {
     <div className="register-container">
       <div className="register-card">
         <h2 className="register-title">Student ID Verification</h2>
-        <p className="register-subtitle">Please upload a clear photo of your Student ID to verify your university status.</p>
+        <p className="register-subtitle">Please upload a clear photo of your UTAR Student ID.</p>
 
         <div className="upload-section">
           <input
@@ -162,7 +172,7 @@ export const Register = () => {
           />
 
           {isProcessing && <p className="text-blue-600 font-medium my-2">{ocrProgress}</p>}
-          {error && <p className="error-message" style={{ color: "red" }}>{error}</p>}
+          {error && <p className="error-message" style={{ color: "red", fontWeight: "bold", marginTop: "10px" }}>{error}</p>}
           {!isProcessing && !error && ocrProgress && <p className="text-green-600 font-medium my-2">{ocrProgress}</p>}
 
           {imagePreview && (
@@ -173,14 +183,13 @@ export const Register = () => {
         </div>
 
         <div className="form-section" style={{ marginTop: "20px" }}>
-          
-          <label>Full Name</label>
+          <label>Full Name (From ID)</label>
           <input
             type="text"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             style={{ display: "block", width: "100%", marginBottom: "10px" }}
-            placeholder="Please upload your ID card to auto-fill (editable if incorrect)"
+            placeholder="Auto-filled by AI"
           />
 
           <label>Student ID Status</label>
@@ -189,16 +198,16 @@ export const Register = () => {
             value={formData.studentId}
             readOnly
             style={{ backgroundColor: "#f3f4f6", cursor: "not-allowed", display: "block", width: "100%", marginBottom: "10px" }}
-            placeholder="Please upload your ID card to auto-fill"
+            placeholder="Upload UTAR ID to verify"
           />
 
-          <label>Student Email</label>
+          <label>Student Email (@1utar.my)</label>
           <input
             type="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             style={{ display: "block", width: "100%", marginBottom: "10px" }}
-            placeholder="student@university.edu"
+            placeholder="student@1utar.my"
           />
 
           <label>Password</label>
