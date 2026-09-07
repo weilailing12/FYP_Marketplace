@@ -59,6 +59,9 @@ export function Profile() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordMfaFactorId, setPasswordMfaFactorId] = useState<string | null>(null);
+  const [passwordMfaChallengeId, setPasswordMfaChallengeId] = useState<string | null>(null);
+  const [passwordMfaCode, setPasswordMfaCode] = useState("");
   const [privacyMessage, setPrivacyMessage] = useState("");
   const [privacyError, setPrivacyError] = useState("");
 
@@ -196,9 +199,44 @@ export function Profile() {
     if (!user?.email) { setPrivacyError("Unable to identify your account."); return; }
     const { error: reauthError } = await supabase.auth.signInWithPassword({ email: user.email, password: oldPassword });
     if (reauthError) { setPrivacyError("The current password is incorrect."); return; }
+
+    const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (assurance?.currentLevel === "aal1" && assurance.nextLevel === "aal2") {
+      const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
+      const factor = factors?.totp.find((item) => item.status === "verified");
+      if (factorsError || !factor) { setPrivacyError(factorsError?.message || "No verified authenticator was found."); return; }
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: factor.id });
+      if (challengeError) { setPrivacyError(challengeError.message); return; }
+      setPasswordMfaFactorId(factor.id);
+      setPasswordMfaChallengeId(challenge.id);
+      setPrivacyMessage("Enter the code from your authenticator app to continue changing your password.");
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) setPrivacyError(error.message);
     else { setOldPassword(""); setNewPassword(""); setConfirmPassword(""); setPrivacyMessage("Password changed successfully."); }
+  };
+
+  const verifyPasswordMfa = async () => {
+    if (!passwordMfaFactorId || !passwordMfaChallengeId || passwordMfaCode.length !== 6) return;
+    setPrivacyError("");
+    const { error: verifyError } = await supabase.auth.mfa.verify({
+      factorId: passwordMfaFactorId,
+      challengeId: passwordMfaChallengeId,
+      code: passwordMfaCode,
+    });
+    if (verifyError) { setPrivacyError("Invalid authenticator code. Please try again."); return; }
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) { setPrivacyError(error.message); return; }
+    setPasswordMfaFactorId(null);
+    setPasswordMfaChallengeId(null);
+    setPasswordMfaCode("");
+    setOldPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setPrivacyMessage("Password changed successfully.");
   };
 
   return (
@@ -576,7 +614,7 @@ export function Profile() {
                 <Separator />
                 <div className="space-y-4">
                   <div className="flex items-start gap-3"><KeyRound className="h-5 w-5 text-blue-600 mt-1" /><div><h3 className="font-semibold text-gray-900">Change password</h3><p className="text-sm text-gray-600">Enter your current password before choosing a new one.</p></div></div>
-                  <form onSubmit={changePassword} className="space-y-3"><Input type="password" placeholder="Current password" value={oldPassword} onChange={(event) => setOldPassword(event.target.value)} required /><Input type="password" placeholder="New password (minimum 8 characters)" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required /><Input type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required /><Button type="submit" variant="outline">Change password</Button></form>
+                  <form onSubmit={changePassword} className="space-y-3"><Input type="password" placeholder="Current password" value={oldPassword} onChange={(event) => setOldPassword(event.target.value)} required /><Input type="password" placeholder="New password (minimum 8 characters)" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required /><Input type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />{passwordMfaFactorId && <div className="space-y-2"><p className="text-sm text-gray-600">Verify your authenticator code to finish.</p><Input value={passwordMfaCode} onChange={(event) => setPasswordMfaCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" placeholder="6-digit authenticator code" required /><Button type="button" variant="outline" onClick={verifyPasswordMfa} disabled={passwordMfaCode.length !== 6}>Verify and change password</Button></div>}{!passwordMfaFactorId && <Button type="submit" variant="outline">Change password</Button>}</form>
                 </div>
               </CardContent>
             </Card>
