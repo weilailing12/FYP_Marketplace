@@ -236,6 +236,45 @@ export function AdminDashboard() {
     }
   };
 
+  // Admin function to permanently delete club merchandise
+  const deleteClubMerchProduct = async (productId: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${title}"?`)) return;
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId);
+
+      if (error) {
+        // If foreign key constraint because of past student orders
+        if (error.code === '23503' || error.message.includes('foreign key') || error.message.includes('orders')) {
+          const hideInstead = window.confirm(
+            `"${title}" cannot be permanently deleted because students have past order records for it.\n\nWould you like to Hide and mark it as Sold Out instead so it no longer appears in the store?`
+          );
+          if (hideInstead) {
+            await supabase
+              .from('products')
+              .update({ status: 'hidden', availability: 'sold' })
+              .eq('id', productId);
+
+            setClubMerchProducts(clubMerchProducts.map(p =>
+              p.id === productId ? { ...p, status: 'hidden', availability: 'sold' } : p
+            ));
+          }
+          return;
+        }
+        throw error;
+      }
+
+      // Remove from UI state
+      setClubMerchProducts(clubMerchProducts.filter(p => p.id !== productId));
+      setProducts(products.filter(p => p.id !== productId));
+    } catch (error: any) {
+      console.error("Error deleting club merchandise:", error);
+      alert(error.message || "Failed to delete merchandise item.");
+    }
+  };
+
   const createAnnouncement = async (event: FormEvent) => {
     event.preventDefault();
     if (!announcementTitle.trim() || !announcementDescription.trim()) return;
@@ -526,10 +565,13 @@ export function AdminDashboard() {
 
                           <div className="flex items-center space-x-2">
                             <Button variant="outline" size="sm" onClick={() => navigate(`/edit/${product.id}`)}>
-                              <Edit className="w-4 h-4 mr-2" /> Edit
+                              <Edit className="w-4 h-4 mr-1.5" /> Edit
                             </Button>
-                            <Button variant={product.status === 'active' ? "destructive" : "secondary"} size="sm" onClick={() => toggleClubMerchStatus(product.id, product.status)}>
-                              {product.status === 'active' ? <><EyeOff className="w-4 h-4 mr-2" /> Hide</> : <><Eye className="w-4 h-4 mr-2" /> Show</>}
+                            <Button variant={product.status === 'active' ? "outline" : "secondary"} size="sm" onClick={() => toggleClubMerchStatus(product.id, product.status)}>
+                              {product.status === 'active' ? <><EyeOff className="w-4 h-4 mr-1.5 text-amber-600" /> Hide</> : <><Eye className="w-4 h-4 mr-1.5 text-green-600" /> Show</>}
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => deleteClubMerchProduct(product.id, product.title)} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                              <Trash2 className="w-4 h-4 mr-1.5" /> Delete
                             </Button>
                           </div>
                         </div>
