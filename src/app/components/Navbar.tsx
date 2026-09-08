@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, ShoppingCart, MessageCircle, Bell } from "lucide-react";
+import { Search, Plus, ShoppingCart, MessageCircle, Bell, Package } from "lucide-react";
 import { supabase } from "../../supabase";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -12,6 +12,7 @@ export function Navbar() {
   const location = useLocation();
   const { itemCount } = useCart();
   const [orderNoticeCount, setOrderNoticeCount] = useState(0);
+  const [sellerOrderNoticeCount, setSellerOrderNoticeCount] = useState(0);
   const [messageNoticeCount, setMessageNoticeCount] = useState(0);
   
   const [localQuery, setLocalQuery] = useState(searchParams.get("q") || "");
@@ -36,6 +37,21 @@ export function Navbar() {
     const refreshSeenOrders = () => loadOrderNotices();
     window.addEventListener("campustrade-orders-seen", refreshSeenOrders);
     return () => { if (channel) supabase.removeChannel(channel); window.removeEventListener("campustrade-orders-seen", refreshSeenOrders); };
+  }, []);
+
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | undefined;
+    async function loadSellerOrderNotices() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { count } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("seller_id", user.id).eq("status", "pending");
+      setSellerOrderNoticeCount(count || 0);
+      if (!channel) {
+        channel = supabase.channel(`navbar-seller-orders-${user.id}`).on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `seller_id=eq.${user.id}` }, loadSellerOrderNotices).subscribe();
+      }
+    }
+    loadSellerOrderNotices();
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, []);
 
   useEffect(() => {
@@ -113,6 +129,10 @@ export function Navbar() {
             <Button variant="outline" size="icon" onClick={() => navigate("/orders")} aria-label={`Open orders with ${orderNoticeCount} updates`} className="relative">
               <Bell className="h-4 w-4" />
               {orderNoticeCount > 0 && <span className="absolute -right-2 -top-2 min-w-5 h-5 rounded-full bg-green-600 px-1 text-xs leading-5 text-white">{orderNoticeCount}</span>}
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => navigate("/seller-dashboard")} aria-label={`Open seller dashboard with ${sellerOrderNoticeCount} pending requests`} className="relative">
+              <Package className="h-4 w-4" />
+              {sellerOrderNoticeCount > 0 && <span className="absolute -right-2 -top-2 min-w-5 h-5 rounded-full bg-orange-500 px-1 text-xs leading-5 text-white">{sellerOrderNoticeCount}</span>}
             </Button>
             <Button
               onClick={() => navigate("/create")}

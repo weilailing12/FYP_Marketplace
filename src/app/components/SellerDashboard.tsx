@@ -26,6 +26,7 @@ export function SellerDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [meetups, setMeetups] = useState<Meetup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newOrderNotice, setNewOrderNotice] = useState(false);
 
   const loadDashboard = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -52,7 +53,20 @@ export function SellerDashboard() {
     setLoading(false);
   };
 
-  useEffect(() => { loadDashboard(); }, [navigate]);
+  useEffect(() => {
+    loadDashboard();
+    let channel: ReturnType<typeof supabase.channel> | undefined;
+    async function subscribeToOrders() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      channel = supabase.channel(`seller-dashboard-orders-${user.id}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `seller_id=eq.${user.id}` }, () => {
+        setNewOrderNotice(true);
+        loadDashboard();
+      }).subscribe();
+    }
+    subscribeToOrders();
+    return () => { if (channel) supabase.removeChannel(channel); };
+  }, [navigate]);
 
   const updateOrder = async (order: Order, status: "accepted" | "rejected" | "completed") => {
     const { error } = await supabase.from("orders").update({ status, updated_at: new Date().toISOString() }).eq("id", order.id).eq("seller_id", userId);
@@ -73,7 +87,7 @@ export function SellerDashboard() {
   if (loading) return <div className="p-10 text-center text-gray-500">Loading seller dashboard...</div>;
 
   return <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-    <div><h1 className="text-3xl font-bold text-gray-900">Seller Dashboard</h1><p className="text-gray-600 mt-1">Manage your listings and buyer requests.</p></div>
+    <div><h1 className="text-3xl font-bold text-gray-900">Seller Dashboard</h1><p className="text-gray-600 mt-1">Manage your listings and buyer requests.</p>{newOrderNotice && <div className="mt-4 flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900"><span>A new buyer order request has arrived.</span><Button size="sm" variant="outline" onClick={() => setNewOrderNotice(false)}>Dismiss</Button></div>}</div>
     <Card><CardHeader><CardTitle className="flex items-center gap-2"><Clock3 className="h-5 w-5 text-blue-600" /> Buyer Requests</CardTitle></CardHeader><CardContent className="space-y-3">
       {orders.length === 0 && <p className="text-gray-500 py-6 text-center">No order requests yet.</p>}
       {orders.map((order) => <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border rounded-lg p-4"><div><p className="font-semibold">{order.product?.title || "Product"}</p><p className="text-sm text-gray-600">Requested by {order.buyer?.full_name || "Student"} · RM {Number(order.price).toFixed(2)}</p><p className="text-xs text-gray-400 mt-1">{new Date(order.created_at).toLocaleString()}</p></div><div className="flex items-center gap-2"><Badge className={order.status === "accepted" ? "bg-green-100 text-green-800" : order.status === "rejected" || order.status === "cancelled" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}>{order.status}</Badge>{order.status === "pending" && <><Button size="sm" onClick={() => updateOrder(order, "accepted")} className="bg-green-600 hover:bg-green-700"><Check className="h-4 w-4 mr-1" /> Accept</Button><Button size="sm" variant="outline" onClick={() => updateOrder(order, "rejected")}><X className="h-4 w-4 mr-1" /> Reject</Button></>}{order.status === "accepted" && <Button size="sm" variant="outline" onClick={() => updateOrder(order, "completed")}>Mark completed</Button>}<Button size="sm" variant="ghost" onClick={() => navigate(`/chat/${order.buyer_id}?orderId=${order.id}`)}>Message</Button></div></div>)}
