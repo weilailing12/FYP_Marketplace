@@ -10,6 +10,7 @@ import { Profile } from "./components/Profile";
 import { ClubMerchPage } from "./components/ClubMerchPage";
 import { ClubMerchAdminCreate } from "./components/ClubMerchAdminCreate";
 import { LostAndFoundPage } from "./components/LostAndFoundPage";
+import { LostFoundChat } from "./components/LostFoundChat";
 import { ReportLostFound } from "./components/ReportLostFound";
 import { Sidebar } from "./components/Sidebar";
 import { Navbar } from "./components/Navbar";
@@ -107,6 +108,7 @@ export default function App() {
             <Route path="/cart" element={<CartPage />} />
             <Route path="/clubmerch" element={<ClubMerchPage />} />
             <Route path="/lostfound" element={<LostAndFoundPage />} />
+            <Route path="/lostfound/chat/:reporterId" element={<LostFoundChat />} />
             <Route path="/reportlostfound" element={<ReportLostFound />} />
             <Route path="*" element={<Navigate to="/marketplace" replace />} />
             <Route path="/admin" element={<AdminDashboard />} />

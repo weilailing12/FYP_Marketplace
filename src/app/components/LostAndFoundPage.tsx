@@ -3,7 +3,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { MapPin, Calendar, PlusCircle, Loader2 } from "lucide-react";
+import { MapPin, Calendar, PlusCircle, Loader2, ShieldCheck, Sparkles, CheckCircle2, MessageCircle } from "lucide-react";
 import { supabase } from "../../supabase";
 import { useNavigate } from "react-router-dom";
 
@@ -17,6 +17,8 @@ interface LostFoundItem {
   date: string;
   image_url: string;
   description: string;
+  status?: string;
+  holding_location?: string;
   reporter_id: string;
   profiles: {
     full_name: string;
@@ -27,10 +29,16 @@ export function LostAndFoundPage() {
   const navigate = useNavigate();
   const [items, setItems] = useState<LostFoundItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchItems() {
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session) {
+          setCurrentUserId(sessionData.session.user.id);
+        }
+
         const { data, error } = await supabase
           .from('lost_and_found')
           .select('*, profiles!lost_and_found_reporter_id_fkey(full_name)')
@@ -95,20 +103,20 @@ export function LostAndFoundPage() {
                 </div>
               ) : (
                 items.map((item) => (
-                  <LostFoundCard key={item.id} item={item} />
+                  <LostFoundCard key={item.id} item={item} currentUserId={currentUserId} />
                 ))
               )}
             </TabsContent>
             
             <TabsContent value="lost" className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {items.filter(i => (i.type || i.item_type) === 'lost').map((item) => (
-                <LostFoundCard key={item.id} item={item} />
+                <LostFoundCard key={item.id} item={item} currentUserId={currentUserId} />
               ))}
             </TabsContent>
 
             <TabsContent value="found" className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {items.filter(i => (i.type || i.item_type) === 'found').map((item) => (
-                <LostFoundCard key={item.id} item={item} />
+                <LostFoundCard key={item.id} item={item} currentUserId={currentUserId} />
               ))}
             </TabsContent>
           </Tabs>
@@ -119,42 +127,77 @@ export function LostAndFoundPage() {
 }
 
 // Sub-component for the card to keep code clean
-function LostFoundCard({ item }: { item: LostFoundItem }) {
+function LostFoundCard({ item, currentUserId }: { item: LostFoundItem; currentUserId: string | null }) {
   const navigate = useNavigate();
+  const isFound = (item.type || item.item_type) === 'found';
+  const isReporter = currentUserId ? currentUserId === item.reporter_id : false;
+  const isReturned = item.status === 'returned';
+
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow border-none shadow-sm bg-white">
-      <div className="flex h-44">
+    <Card className={`overflow-hidden hover:shadow-md transition-shadow border-none shadow-sm bg-white ${isReturned ? 'opacity-85' : ''}`}>
+      <div className="flex h-48 sm:h-44">
         <div className="w-1/3 bg-gray-100 flex items-center justify-center overflow-hidden relative">
           {item.image_url ? (
             <img src={item.image_url} className="w-full h-full object-cover" alt={item.title || item.item_name} />
           ) : (
             <span className="text-gray-400 text-xs">No Image</span>
           )}
+          {isReturned && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-1 text-center">
+              <Badge className="bg-emerald-600 text-white border-none text-[10px] py-0.5">
+                Reunited 🎉
+              </Badge>
+            </div>
+          )}
         </div>
         <CardContent className="flex-1 p-4 flex flex-col justify-between">
           <div>
-            <div className="flex justify-between items-start mb-1">
-              <h3 className="font-bold text-lg leading-tight line-clamp-1">{item.title || item.item_name}</h3>
-              <Badge className={(item.type || item.item_type) === 'lost' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
-                {(item.type || item.item_type || 'unknown').toUpperCase()}
-              </Badge>
+            <div className="flex justify-between items-start gap-1 mb-1">
+              <h3 className="font-bold text-base sm:text-lg leading-tight line-clamp-1">{item.title || item.item_name}</h3>
+              <div className="flex items-center gap-1 shrink-0">
+                <Badge className={isFound ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
+                  {isFound ? 'FOUND' : 'LOST'}
+                </Badge>
+              </div>
             </div>
-            <div className="space-y-1 mt-2">
+            <div className="space-y-1 mt-1.5">
               <p className="text-xs text-gray-500 flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> {item.location}
+                <MapPin className="h-3 w-3 text-blue-500 shrink-0" /> <span className="truncate">{item.location}</span>
               </p>
               <p className="text-xs text-gray-500 flex items-center gap-1">
-                <Calendar className="h-3 w-3" /> {item.date}
+                <Calendar className="h-3 w-3 text-gray-400 shrink-0" /> <span>{item.date}</span>
               </p>
             </div>
-            <p className="text-sm text-gray-600 mt-2 line-clamp-2">{item.description}</p>
+            <p className="text-xs sm:text-sm text-gray-600 mt-2 line-clamp-2">{item.description}</p>
           </div>
+          
           <Button 
-            variant="ghost" 
-            className="w-full mt-2 text-blue-600 h-8 text-xs hover:bg-blue-50" 
-            onClick={() => navigate(`/chat/${item.reporter_id}`)}
+            variant={isReporter ? "outline" : isFound ? "default" : "secondary"}
+            className={`w-full mt-2 h-8 text-xs font-medium flex items-center justify-center gap-1.5 ${
+              isReporter 
+                ? "border-blue-200 text-blue-700 hover:bg-blue-50"
+                : isFound 
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+            }`} 
+            onClick={() => navigate(`/lostfound/chat/${item.reporter_id}?itemId=${item.id}`)}
           >
-            Contact {item.profiles?.full_name || 'Reporter'}
+            {isReporter ? (
+              <>
+                <MessageCircle className="h-3.5 w-3.5" />
+                View Inquiries / Manage
+              </>
+            ) : isFound ? (
+              <>
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Claim This Item
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-3.5 w-3.5" />
+                I Found This!
+              </>
+            )}
           </Button>
         </CardContent>
       </div>
