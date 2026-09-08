@@ -62,6 +62,8 @@ export function Profile() {
   const [passwordMfaFactorId, setPasswordMfaFactorId] = useState<string | null>(null);
   const [passwordMfaChallengeId, setPasswordMfaChallengeId] = useState<string | null>(null);
   const [passwordMfaCode, setPasswordMfaCode] = useState("");
+  const [disableMfaChallengeId, setDisableMfaChallengeId] = useState<string | null>(null);
+  const [disableMfaCode, setDisableMfaCode] = useState("");
   const [privacyMessage, setPrivacyMessage] = useState("");
   const [privacyError, setPrivacyError] = useState("");
 
@@ -184,9 +186,24 @@ export function Profile() {
 
   const disableMfa = async () => {
     if (!mfaFactorId) return;
+    setPrivacyError("");
+    const { data: challenge, error } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+    if (error) { setPrivacyError(error.message); return; }
+    setDisableMfaChallengeId(challenge.id);
+    setPrivacyMessage("Enter your authenticator code to disable MFA.");
+  };
+
+  const confirmDisableMfa = async () => {
+    if (!mfaFactorId || !disableMfaChallengeId || disableMfaCode.length !== 6) return;
+    setPrivacyError("");
+    const { error: verifyError } = await supabase.auth.mfa.verify({ factorId: mfaFactorId, challengeId: disableMfaChallengeId, code: disableMfaCode });
+    if (verifyError) { setPrivacyError("Invalid authenticator code. Please try again."); return; }
     const { error } = await supabase.auth.mfa.unenroll({ factorId: mfaFactorId });
-    if (error) setPrivacyError(error.message);
-    else { setMfaFactorId(null); setPrivacyMessage("Multi-factor authentication is disabled."); }
+    if (error) { setPrivacyError(error.message); return; }
+    setMfaFactorId(null);
+    setDisableMfaChallengeId(null);
+    setDisableMfaCode("");
+    setPrivacyMessage("Multi-factor authentication is disabled.");
   };
 
   const changePassword = async (event: FormEvent) => {
@@ -609,7 +626,7 @@ export function Profile() {
                   {privacyMessage && <Alert className="bg-green-50 border-green-200"><AlertDescription className="text-green-800">{privacyMessage}</AlertDescription></Alert>}
                   {!mfaFactorId && !mfaQrCode && <Button type="button" onClick={beginMfaSetup} className="bg-blue-600 hover:bg-blue-700">Set up authenticator</Button>}
                   {mfaQrCode && <div className="rounded-lg border p-4 space-y-3"><p className="text-sm text-gray-700">Scan this QR code with Google Authenticator, Microsoft Authenticator, or another TOTP app.</p><img src={mfaQrCode} alt="Authenticator setup QR code" className="h-44 w-44" /><p className="text-xs text-gray-500 break-all">Manual setup key: {mfaSecret}</p><div className="flex gap-2"><Input value={mfaCode} onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" placeholder="6-digit code" /><Button type="button" onClick={verifyMfa} disabled={mfaCode.length !== 6}>Verify and enable</Button></div></div>}
-                  {mfaFactorId && !mfaQrCode && <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 p-4"><p className="text-sm font-medium text-green-800">Authenticator protection is enabled.</p><Button type="button" variant="outline" onClick={disableMfa}>Disable MFA</Button></div>}
+                  {mfaFactorId && !mfaQrCode && <div className="rounded-lg border border-green-200 bg-green-50 p-4 space-y-3"><div className="flex items-center justify-between gap-3"><p className="text-sm font-medium text-green-800">Authenticator protection is enabled.</p>{!disableMfaChallengeId && <Button type="button" variant="outline" onClick={disableMfa}>Disable MFA</Button>}</div>{disableMfaChallengeId && <div className="space-y-2"><p className="text-sm text-green-900">Enter the 6-digit code from your authenticator app to confirm.</p><div className="flex gap-2"><Input value={disableMfaCode} onChange={(event) => setDisableMfaCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" placeholder="6-digit code" /><Button type="button" variant="outline" onClick={confirmDisableMfa} disabled={disableMfaCode.length !== 6}>Confirm disable</Button></div></div>}</div>}
                 </div>
                 <Separator />
                 <div className="space-y-4">
