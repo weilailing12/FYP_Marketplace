@@ -280,7 +280,7 @@ export function Profile() {
             </TabsTrigger>
             <TabsTrigger value="privacy" className="tab-trigger">
               <Shield className="h-4 w-4 mr-2" />
-              Privacy
+              Security
             </TabsTrigger>
           </TabsList>
 
@@ -557,69 +557,13 @@ export function Profile() {
             </Card>
           </TabsContent>
 
-          {/* Privacy Tab */}
+          {/* Privacy & Security Tab */}
           <TabsContent value="privacy" className="tab-content">
             <Card className="profile-card">
               <CardHeader>
-                <CardTitle className="card-title">Privacy Settings</CardTitle>
+                <CardTitle className="card-title">Security & Authentication</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {saveSuccess && (
-                  <Alert className="mb-6 bg-green-50 border-green-200">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">
-                      Privacy settings updated successfully!
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <Form {...settingsForm}>
-                  <form onSubmit={settingsForm.handleSubmit(onSettingsSubmit)} className="space-y-6">
-                    <div className="space-y-4">
-                      <FormField
-                        control={settingsForm.control}
-                        name="profileVisibility"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="form-label">Profile Visibility</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="form-select">
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="public">Public - Anyone can see your profile</SelectItem>
-                                <SelectItem value="friends">Friends Only - Only connected users</SelectItem>
-                                <SelectItem value="private">Private - Only you can see your profile</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <Separator />
-
-                    </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                      disabled={settingsForm.formState.isSubmitting}
-                    >
-                      {settingsForm.formState.isSubmitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        "Save Privacy Settings"
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-                <Separator />
                 <div className="space-y-4">
                   <div className="flex items-start gap-3"><Smartphone className="h-5 w-5 text-blue-600 mt-1" /><div><h3 className="font-semibold text-gray-900">Multi-factor authentication</h3><p className="text-sm text-gray-600">Use an authenticator app to protect your account when signing in.</p></div></div>
                   {privacyError && <Alert className="bg-red-50 border-red-200"><AlertDescription className="text-red-800">{privacyError}</AlertDescription></Alert>}
