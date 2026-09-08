@@ -23,5 +23,37 @@ export function MessagesInbox() {
     }
     loadMessages();
   }, []);
-  return <div className="max-w-3xl mx-auto px-4 py-8"><Card><CardHeader><CardTitle className="flex items-center gap-2"><MessageCircle className="h-5 w-5 text-blue-600" /> Messages</CardTitle></CardHeader><CardContent className="space-y-2">{conversations.length === 0 && <p className="text-center text-gray-500 py-8">No conversations yet. Start a chat from a product page.</p>}{conversations.map((conversation) => <button key={conversation.id} onClick={() => navigate(`/chat/${conversation.id}`)} className="w-full text-left border rounded-lg p-4 hover:bg-blue-50"><p className="font-semibold">{conversation.name}</p><p className="text-sm text-gray-600 truncate">{conversation.lastMessage}</p><p className="text-xs text-gray-400 mt-1">{new Date(conversation.createdAt).toLocaleString()}</p></button>)}</CardContent></Card></div>;
+  return (
+    <div className="min-h-screen bg-slate-50 py-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6">
+        <Card className="border border-slate-200/80 shadow-sm bg-white">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-blue-600" /> Messages
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {conversations.length === 0 && (
+              <p className="text-center text-gray-500 py-8">
+                No conversations yet. Start a chat from a product page.
+              </p>
+            )}
+            {conversations.map((conversation) => (
+              <button
+                key={conversation.id}
+                onClick={() => navigate(`/chat/${conversation.id}`)}
+                className="w-full text-left border border-slate-100 rounded-lg p-4 hover:bg-blue-50/60 transition-colors"
+              >
+                <p className="font-semibold text-slate-800">{conversation.name}</p>
+                <p className="text-sm text-gray-600 truncate mt-0.5">{conversation.lastMessage}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {new Date(conversation.createdAt).toLocaleString()}
+                </p>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }

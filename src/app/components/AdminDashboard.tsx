@@ -330,14 +330,15 @@ export function AdminDashboard() {
   const clubMerchCount = products.filter(p => p.product_type === 'clubmerch').length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="mb-8 border-b pb-6">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-          <ShieldAlert className="h-8 w-8 mr-3 text-blue-600" />
-          Master Admin Dashboard
-        </h1>
-        <p className="text-gray-600 mt-2">Manage users, moderate marketplace listings, and handle official university announcements.</p>
-      </div>
+    <div className="min-h-screen bg-slate-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-8 border-b border-slate-200 pb-6">
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+            <ShieldAlert className="h-8 w-8 mr-3 text-blue-600" />
+            Master Admin Dashboard
+          </h1>
+          <p className="text-gray-600 mt-2">Manage users, moderate marketplace listings, and handle official university announcements.</p>
+        </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="bg-white border shadow-sm p-1">
@@ -572,6 +573,7 @@ export function AdminDashboard() {
         </TabsContent>
 
       </Tabs>
+      </div>
     </div>
   );
 }

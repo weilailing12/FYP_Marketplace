@@ -4,7 +4,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Upload, CheckCircle2, Plus, Loader2 } from "lucide-react";
+import { Upload, CheckCircle2, Plus, Loader2, ArrowLeft } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
 import { supabase } from "../../supabase";
 import { useNavigate } from "react-router-dom";
@@ -108,13 +108,30 @@ export function ReportLostFound() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Report Lost or Found Item</h1>
-          <p className="text-gray-600">Help reunite students with their belongings</p>
-        </div>
+    <div className="lostfound-container">
+      {/* Floating decorative shapes */}
+      <div className="profile-shape-1"></div>
+      <div className="profile-shape-2"></div>
+      <div className="profile-shape-3"></div>
 
+      {/* Hero Section */}
+      <div className="lostfound-hero">
+        <div className="hero-content">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/lostfound')}
+            className="mb-4 text-white hover:bg-white/20"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Lost & Found
+          </Button>
+          <h1 className="hero-title">Report Item</h1>
+          <p className="hero-subtitle">Help reunite students with their belongings</p>
+        </div>
+      </div>
+
+      <div className="lostfound-content pb-20">
         <Card className="listing-card">
           <CardHeader>
             <CardTitle className="card-title">Item Details</CardTitle>
