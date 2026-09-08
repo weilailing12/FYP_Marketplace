@@ -222,6 +222,15 @@ function LostFoundCard({
                 Inquiries
               </Button>
             </div>
+          ) : isReturned ? (
+            <Button 
+              variant="outline"
+              disabled
+              className="w-full mt-2 h-8 text-xs font-medium bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed flex items-center justify-center gap-1.5" 
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 text-slate-400" />
+              Item Reunited / Closed
+            </Button>
           ) : (
             <Button 
               variant={isFound ? "default" : "secondary"}

@@ -148,8 +148,11 @@ export function CreateListing() {
                   <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)} required>
                     <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="books">📚 Books</SelectItem>
-                      <SelectItem value="electronics">💻 Electronics</SelectItem>
+                      <SelectItem value="books">📚 Books & Textbooks</SelectItem>
+                      <SelectItem value="electronics">💻 Electronics & Gadgets</SelectItem>
+                      <SelectItem value="fashion">👕 Fashion & Apparel</SelectItem>
+                      <SelectItem value="furniture">🪑 Furniture & Room</SelectItem>
+                      <SelectItem value="sports">🏸 Sports & Fitness</SelectItem>
                       <SelectItem value="other">📦 Other</SelectItem>
                     </SelectContent>
                   </Select>

@@ -4,7 +4,6 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Switch } from "./ui/switch";
 import { Separator } from "./ui/separator";
 import { Loader2, CheckCircle2, User, Shield, KeyRound, Smartphone } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
@@ -33,18 +32,7 @@ const profileSchema = z.object({
   bio: z.string().max(500, "Bio cannot exceed 500 characters").optional().or(z.literal("")),
 });
 
-const settingsSchema = z.object({
-  emailNotifications: z.boolean(),
-  pushNotifications: z.boolean(),
-  smsNotifications: z.boolean(),
-  profileVisibility: z.string(),
-  theme: z.string(),
-  language: z.string(),
-  twoFactorAuth: z.boolean(),
-});
-
 type ProfileFormValues = z.infer<typeof profileSchema>;
-type SettingsFormValues = z.infer<typeof settingsSchema>;
 
 export function Profile() {
   const navigate = useNavigate();
@@ -120,18 +108,6 @@ export function Profile() {
     loadProfile();
   }, [navigate, profileForm]);
 
-  const settingsForm = useForm<SettingsFormValues>({
-    resolver: zodResolver(settingsSchema),
-    defaultValues: {
-      emailNotifications: true,
-      pushNotifications: true,
-      smsNotifications: false,
-      profileVisibility: "public",
-      theme: "light",
-      language: "en",
-      twoFactorAuth: false,
-    },
-  });
 
   const onProfileSubmit = async (data: ProfileFormValues) => {
     if (!userId) return;
@@ -156,13 +132,6 @@ export function Profile() {
     }
   };
 
-  const onSettingsSubmit = async (data: SettingsFormValues) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    console.log("Settings updated:", data);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
-  };
 
   const beginMfaSetup = async () => {
     setPrivacyError("");
@@ -460,102 +429,6 @@ export function Profile() {
             </Card>
           </TabsContent>
 
-          {/* Notifications Tab */}
-          <TabsContent value="notifications" className="tab-content">
-            <Card className="profile-card">
-              <CardHeader>
-                <CardTitle className="card-title">Notification Preferences</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {saveSuccess && (
-                  <Alert className="mb-6 bg-green-50 border-green-200">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">
-                      Settings updated successfully!
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <Form {...settingsForm}>
-                  <form onSubmit={settingsForm.handleSubmit(onSettingsSubmit)} className="space-y-6">
-                    <div className="space-y-4">
-                      <FormField
-                        control={settingsForm.control}
-                        name="emailNotifications"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center justify-between p-4 rounded-lg border bg-white/50">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base font-medium">Email Notifications</FormLabel>
-                              <p className="text-sm text-gray-600">Receive notifications via email</p>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={settingsForm.control}
-                        name="pushNotifications"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center justify-between p-4 rounded-lg border bg-white/50">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base font-medium">Push Notifications</FormLabel>
-                              <p className="text-sm text-gray-600">Receive push notifications in browser</p>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={settingsForm.control}
-                        name="smsNotifications"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center justify-between p-4 rounded-lg border bg-white/50">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base font-medium">SMS Notifications</FormLabel>
-                              <p className="text-sm text-gray-600">Receive important updates via SMS</p>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                      disabled={settingsForm.formState.isSubmitting}
-                    >
-                      {settingsForm.formState.isSubmitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        "Save Preferences"
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           {/* Privacy & Security Tab */}
           <TabsContent value="privacy" className="tab-content">
@@ -581,101 +454,6 @@ export function Profile() {
             </Card>
           </TabsContent>
 
-          {/* Preferences Tab */}
-          <TabsContent value="preferences" className="tab-content">
-            <Card className="profile-card">
-              <CardHeader>
-                <CardTitle className="card-title">App Preferences</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {saveSuccess && (
-                  <Alert className="mb-6 bg-green-50 border-green-200">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">
-                      Preferences updated successfully!
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <Form {...settingsForm}>
-                  <form onSubmit={settingsForm.handleSubmit(onSettingsSubmit)} className="space-y-6">
-                    <div className="space-y-4">
-                      <FormField
-                        control={settingsForm.control}
-                        name="theme"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="form-label">Theme</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="form-select">
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="light">
-                                  <div className="flex items-center gap-2">
-                                    <Sun className="h-4 w-4" />
-                                    Light
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="dark">
-                                  <div className="flex items-center gap-2">
-                                    <Moon className="h-4 w-4" />
-                                    Dark
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="system">System Default</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={settingsForm.control}
-                        name="language"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="form-label">Language</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="form-select">
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="en">English</SelectItem>
-                                <SelectItem value="ms">Bahasa Melayu</SelectItem>
-                                <SelectItem value="zh">中文</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                      disabled={settingsForm.formState.isSubmitting}
-                    >
-                      {settingsForm.formState.isSubmitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        "Save Preferences"
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
     </div>

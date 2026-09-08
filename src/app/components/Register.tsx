@@ -98,13 +98,16 @@ export const Register = () => {
       console.log("Gemini AI Result:", aiData);
 
       // 6. Enforce UTAR ID rules
-      if (aiData.is_utar_id && aiData.student_id) {
-        setFormData({
-          ...formData,
-          name: aiData.student_name || "",
-          studentId: aiData.student_id
-        });
-        setOcrProgress("UTAR ID Verified Successfully!");
+      if (aiData.is_utar_id && aiData.student_id && aiData.student_name) {
+        setFormData((prev) => ({
+          ...prev,
+          name: String(aiData.student_name).trim(),
+          studentId: String(aiData.student_id).trim()
+        }));
+        setOcrProgress(`UTAR ID Verified: ${String(aiData.student_name).trim()} (${String(aiData.student_id).trim()})`);
+      } else if (aiData.is_utar_id && (!aiData.student_name || !aiData.student_id)) {
+        setError("Verification incomplete: Could not clearly read both student name and ID. Please re-upload a clearer photo.");
+        setOcrProgress("");
       } else {
         setError(aiData.error_message || "Verification failed: This does not appear to be a valid UTAR Student ID.");
         setOcrProgress("");
@@ -120,6 +123,11 @@ export const Register = () => {
   };
 
   const handleFinishRegistration = async () => {
+    if (!formData.name || !formData.studentId) {
+      setError("Please upload and verify a valid UTAR Student ID card to auto-fill your name and ID.");
+      return;
+    }
+
     if (!formData.email || !formData.password) {
       setError("Please enter your email and password.");
       return;
@@ -183,49 +191,107 @@ export const Register = () => {
         </div>
 
         <div className="form-section" style={{ marginTop: "20px" }}>
-          <label>Full Name (From ID)</label>
+          <div style={{ backgroundColor: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "8px", padding: "10px 12px", marginBottom: "14px", fontSize: "13px", color: "#1e40af" }}>
+            🔒 <strong>Identity Verification:</strong> Name and Student ID are strictly extracted and verified by Gemini AI from your UTAR student card to prevent student impersonation.
+          </div>
+
+          <label style={{ display: "block", fontWeight: 600, fontSize: "14px", marginBottom: "4px", color: "#374151" }}>
+            Full Name (Verified by AI)
+          </label>
           <input
             type="text"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            style={{ display: "block", width: "100%", marginBottom: "10px" }}
-            placeholder="Auto-filled by AI"
+            readOnly
+            style={{ 
+              backgroundColor: "#f3f4f6", 
+              cursor: "not-allowed", 
+              display: "block", 
+              width: "100%", 
+              marginBottom: "12px",
+              padding: "10px 12px",
+              borderRadius: "6px",
+              border: "1px solid #d1d5db",
+              color: formData.name ? "#111827" : "#9ca3af",
+              fontWeight: formData.name ? 600 : 400
+            }}
+            placeholder="Upload UTAR ID above to auto-fill"
           />
 
-          <label>Student ID Status</label>
+          <label style={{ display: "block", fontWeight: 600, fontSize: "14px", marginBottom: "4px", color: "#374151" }}>
+            Student ID Number (Verified by AI)
+          </label>
           <input
             type="text"
             value={formData.studentId}
             readOnly
-            style={{ backgroundColor: "#f3f4f6", cursor: "not-allowed", display: "block", width: "100%", marginBottom: "10px" }}
-            placeholder="Upload UTAR ID to verify"
+            style={{ 
+              backgroundColor: "#f3f4f6", 
+              cursor: "not-allowed", 
+              display: "block", 
+              width: "100%", 
+              marginBottom: "12px",
+              padding: "10px 12px",
+              borderRadius: "6px",
+              border: "1px solid #d1d5db",
+              color: formData.studentId ? "#111827" : "#9ca3af",
+              fontWeight: formData.studentId ? 600 : 400
+            }}
+            placeholder="Upload UTAR ID above to auto-fill"
           />
 
-          <label>Student Email (@1utar.my)</label>
+          <label style={{ display: "block", fontWeight: 600, fontSize: "14px", marginBottom: "4px", color: "#374151" }}>
+            Student Email (@1utar.my)
+          </label>
           <input
             type="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            style={{ display: "block", width: "100%", marginBottom: "10px" }}
+            style={{ 
+              display: "block", 
+              width: "100%", 
+              marginBottom: "12px",
+              padding: "10px 12px",
+              borderRadius: "6px",
+              border: "1px solid #d1d5db"
+            }}
             placeholder="student@1utar.my"
           />
 
-          <label>Password</label>
+          <label style={{ display: "block", fontWeight: 600, fontSize: "14px", marginBottom: "4px", color: "#374151" }}>
+            Password
+          </label>
           <input
             type="password"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            style={{ display: "block", width: "100%", marginBottom: "20px" }}
+            style={{ 
+              display: "block", 
+              width: "100%", 
+              marginBottom: "20px",
+              padding: "10px 12px",
+              borderRadius: "6px",
+              border: "1px solid #d1d5db"
+            }}
             placeholder="Create a strong password"
           />
 
           <button
             onClick={handleFinishRegistration}
             className="register-button"
-            disabled={isProcessing || !formData.studentId}
-            style={{ width: "100%", padding: "10px", backgroundColor: (!formData.studentId ? "#ccc" : "#007bff"), color: "white", cursor: (!formData.studentId ? "not-allowed" : "pointer"), borderRadius: "6px", fontWeight: "bold" }}
+            disabled={isProcessing || !formData.studentId || !formData.name}
+            style={{ 
+              width: "100%", 
+              padding: "12px", 
+              backgroundColor: (!formData.studentId || !formData.name ? "#9ca3af" : "#2563eb"), 
+              color: "white", 
+              cursor: (!formData.studentId || !formData.name ? "not-allowed" : "pointer"), 
+              borderRadius: "6px", 
+              fontWeight: "bold",
+              border: "none",
+              transition: "background-color 0.2s"
+            }}
           >
-            Create Account
+            Create Verified Account
           </button>
 
           <button
