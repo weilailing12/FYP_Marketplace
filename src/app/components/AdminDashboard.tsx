@@ -23,6 +23,7 @@ interface ProductInfo {
   price: number;
   product_type: string;
   status: string;
+  availability: string;
   seller_id: string;
   image_urls?: string | string[];
   profiles?: {
@@ -37,6 +38,7 @@ interface ClubMerchProduct {
   image_urls?: any;
   category: string;
   status: string;
+  availability: string;
   club_name?: string;
 }
 
@@ -461,18 +463,10 @@ export function AdminDashboard() {
                         <td className="px-4 py-3 capitalize">{product.product_type}</td>
                         <td className="px-4 py-3">RM {product.price.toFixed(2)}</td>
                         <td className="px-4 py-3">
-                          <Badge className={product.status === 'active' ? 'bg-green-100 text-green-800 hover:bg-green-200 border-transparent' : 'bg-red-100 text-red-800 hover:bg-red-200 border-transparent'}>
-                            {product.status.toUpperCase()}
-                          </Badge>
+                          <div className="flex flex-wrap gap-1"><Badge className={product.status === 'active' ? 'bg-green-100 text-green-800 hover:bg-green-200 border-transparent' : 'bg-red-100 text-red-800 hover:bg-red-200 border-transparent'}>{product.status.toUpperCase()}</Badge>{product.availability === 'sold' && <Badge className="bg-gray-100 text-gray-700 border-transparent">SOLD</Badge>}</div>
                         </td>
                         <td className="px-4 py-3">
-                          <Button
-                            variant={product.status === 'active' ? "destructive" : "outline"}
-                            size="sm"
-                            onClick={() => toggleProductStatus(product.id, product.status)}
-                          >
-                            {product.status === 'active' ? <><EyeOff className="h-4 w-4 mr-1" /> Hide</> : <><Eye className="h-4 w-4 mr-1" /> Restore</>}
-                          </Button>
+                          {product.availability === 'sold' ? <span className="text-xs text-gray-500">Sold listing</span> : <Button variant={product.status === 'active' ? "destructive" : "outline"} size="sm" onClick={() => toggleProductStatus(product.id, product.status)}>{product.status === 'active' ? <><EyeOff className="h-4 w-4 mr-1" /> Hide</> : <><Eye className="h-4 w-4 mr-1" /> Restore</>}</Button>}
                         </td>
                       </tr>
                     ))}
@@ -523,6 +517,7 @@ export function AdminDashboard() {
                             <div className="flex items-center gap-2 mb-1">
                               <Badge variant="outline" className="text-blue-700 bg-blue-50 border-blue-200">{product.club_name || "Unknown Club"}</Badge>
                               {product.status === 'hidden' && <Badge variant="destructive">Hidden</Badge>}
+                              {product.availability === 'sold' && <Badge className="bg-gray-100 text-gray-700 border-transparent">Sold out</Badge>}
                             </div>
                             <h3 className="font-semibold text-lg text-gray-900 line-clamp-1">{product.title}</h3>
                             <p className="text-blue-600 font-medium">RM {product.price}</p>
