@@ -60,6 +60,23 @@ export function LostAndFoundPage() {
     fetchItems();
   }, []);
 
+  const handleToggleStatus = async (item: LostFoundItem) => {
+    const newStatus = item.status === 'returned' ? 'open' : 'returned';
+    try {
+      const { error } = await supabase
+        .from('lost_and_found')
+        .update({ status: newStatus })
+        .eq('id', item.id);
+      if (error) throw error;
+      setItems((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, status: newStatus } : i))
+      );
+    } catch (err) {
+      console.error("Failed to update status:", err);
+      alert("Failed to update status.");
+    }
+  };
+
   return (
     <div className="lostfound-container">
       {/* Floating decorative shapes */}
@@ -103,20 +120,20 @@ export function LostAndFoundPage() {
                 </div>
               ) : (
                 items.map((item) => (
-                  <LostFoundCard key={item.id} item={item} currentUserId={currentUserId} />
+                  <LostFoundCard key={item.id} item={item} currentUserId={currentUserId} onToggleStatus={handleToggleStatus} />
                 ))
               )}
             </TabsContent>
             
             <TabsContent value="lost" className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {items.filter(i => (i.type || i.item_type) === 'lost').map((item) => (
-                <LostFoundCard key={item.id} item={item} currentUserId={currentUserId} />
+                <LostFoundCard key={item.id} item={item} currentUserId={currentUserId} onToggleStatus={handleToggleStatus} />
               ))}
             </TabsContent>
 
             <TabsContent value="found" className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {items.filter(i => (i.type || i.item_type) === 'found').map((item) => (
-                <LostFoundCard key={item.id} item={item} currentUserId={currentUserId} />
+                <LostFoundCard key={item.id} item={item} currentUserId={currentUserId} onToggleStatus={handleToggleStatus} />
               ))}
             </TabsContent>
           </Tabs>
@@ -127,7 +144,15 @@ export function LostAndFoundPage() {
 }
 
 // Sub-component for the card to keep code clean
-function LostFoundCard({ item, currentUserId }: { item: LostFoundItem; currentUserId: string | null }) {
+function LostFoundCard({ 
+  item, 
+  currentUserId,
+  onToggleStatus
+}: { 
+  item: LostFoundItem; 
+  currentUserId: string | null;
+  onToggleStatus: (item: LostFoundItem) => void;
+}) {
   const navigate = useNavigate();
   const isFound = (item.type || item.item_type) === 'found';
   const isReporter = currentUserId ? currentUserId === item.reporter_id : false;
@@ -144,7 +169,7 @@ function LostFoundCard({ item, currentUserId }: { item: LostFoundItem; currentUs
           )}
           {isReturned && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-1 text-center">
-              <Badge className="bg-emerald-600 text-white border-none text-[10px] py-0.5">
+              <Badge className="bg-emerald-600 text-white border-none text-[10px] py-0.5 shadow">
                 Reunited 🎉
               </Badge>
             </div>
@@ -171,34 +196,55 @@ function LostFoundCard({ item, currentUserId }: { item: LostFoundItem; currentUs
             <p className="text-xs sm:text-sm text-gray-600 mt-2 line-clamp-2">{item.description}</p>
           </div>
           
-          <Button 
-            variant={isReporter ? "outline" : isFound ? "default" : "secondary"}
-            className={`w-full mt-2 h-8 text-xs font-medium flex items-center justify-center gap-1.5 ${
-              isReporter 
-                ? "border-blue-200 text-blue-700 hover:bg-blue-50"
-                : isFound 
+          {isReporter ? (
+            <div className="flex items-center gap-2 mt-2">
+              <Button
+                size="sm"
+                variant={isReturned ? "outline" : "default"}
+                className={`flex-1 h-8 text-xs font-medium ${
+                  isReturned 
+                    ? "border-emerald-600 text-emerald-700 bg-emerald-50 hover:bg-emerald-100" 
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                }`}
+                onClick={() => onToggleStatus(item)}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                {isReturned ? "Reopen" : "Mark Reunited 🎉"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-slate-200 text-slate-700 hover:bg-slate-50 h-8 text-xs font-medium"
+                onClick={() => navigate("/messages")}
+                title="View student inquiries in Messages"
+              >
+                <MessageCircle className="h-3.5 w-3.5 mr-1 text-blue-600" />
+                Inquiries
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              variant={isFound ? "default" : "secondary"}
+              className={`w-full mt-2 h-8 text-xs font-medium flex items-center justify-center gap-1.5 ${
+                isFound 
                   ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
                   : "bg-blue-600 hover:bg-blue-700 text-white"
-            }`} 
-            onClick={() => navigate(`/lostfound/chat/${item.reporter_id}?itemId=${item.id}`)}
-          >
-            {isReporter ? (
-              <>
-                <MessageCircle className="h-3.5 w-3.5" />
-                View Inquiries / Manage
-              </>
-            ) : isFound ? (
-              <>
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Claim This Item
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-3.5 w-3.5" />
-                I Found This!
-              </>
-            )}
-          </Button>
+              }`} 
+              onClick={() => navigate(`/lostfound/chat/${item.reporter_id}?itemId=${item.id}`)}
+            >
+              {isFound ? (
+                <>
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Claim This Item
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3.5 w-3.5" />
+                  I Found This!
+                </>
+              )}
+            </Button>
+          )}
         </CardContent>
       </div>
     </Card>

@@ -16,7 +16,8 @@ import {
   Clock, 
   Loader2,
   Sparkles,
-  HelpCircle
+  HelpCircle,
+  MessageCircle
 } from "lucide-react";
 import { supabase } from "../../supabase";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -422,8 +423,28 @@ export function LostFoundChat() {
             </Card>
           </div>
 
-          {/* Right Column: Chat Box */}
+          {/* Right Column: Chat Box or Reporter Inbox Guidance */}
           <div className="lg:col-span-8 flex flex-col min-h-0 h-full overflow-hidden">
+            {currentUserId && reporterId && currentUserId === reporterId ? (
+              <Card className="flex flex-col items-center justify-center min-h-0 h-full p-8 text-center bg-white border-slate-200 shadow-sm">
+                <div className="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-4 shadow-sm">
+                  <MessageCircle className="h-8 w-8" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-800 mb-2">You Reported This Item</h3>
+                <p className="text-sm text-slate-500 max-w-md mb-6 leading-relaxed">
+                  When other students reach out to claim this item or help you find it, their messages will arrive directly in your <strong>Messages Inbox</strong>.
+                </p>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <Button onClick={() => navigate("/messages")} className="bg-blue-600 hover:bg-blue-700 text-white shadow">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Open Messages Inbox
+                  </Button>
+                  <Button variant="outline" onClick={() => navigate("/lostfound")}>
+                    Back to Lost & Found
+                  </Button>
+                </div>
+              </Card>
+            ) : (
             <Card className="flex flex-col min-h-0 h-full overflow-hidden shadow-sm border-slate-200 bg-white">
               
               {/* Chat Header */}
@@ -594,6 +615,7 @@ export function LostFoundChat() {
               </div>
 
             </Card>
+            )}
           </div>
 
         </div>
