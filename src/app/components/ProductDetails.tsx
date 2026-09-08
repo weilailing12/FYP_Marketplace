@@ -18,6 +18,7 @@ export function ProductDetails() {
   // NEW: State to track which image is currently showing big
   const [mainImage, setMainImage] = useState<string>("");
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
+  const [orderQuantity, setOrderQuantity] = useState(1);
   const [placingOrder, setPlacingOrder] = useState(false);
   const { addItem, isInCart } = useCart();
 
@@ -69,14 +70,15 @@ export function ProductDetails() {
   const placeOrder = async () => {
     if (!currentUser || !product || product.seller_id === currentUser.id || product.availability !== "available") return;
     setPlacingOrder(true);
-    const { data: latestProduct, error: productError } = await supabase.from("products").select("availability").eq("id", product.id).single();
-    if (productError || latestProduct?.availability !== "available") {
+    const { data: latestProduct, error: productError } = await supabase.from("products").select("availability, stock_quantity, product_type").eq("id", product.id).single();
+    const availableStock = latestProduct?.stock_quantity ?? 1;
+    if (productError || latestProduct?.availability !== "available" || availableStock < orderQuantity) {
       alert("This item is no longer available.");
       setProduct((current: any) => current ? { ...current, availability: latestProduct?.availability || "sold" } : current);
       setPlacingOrder(false);
       return;
     }
-    const { data: order, error } = await supabase.from("orders").insert({ product_id: product.id, buyer_id: currentUser.id, seller_id: product.seller_id, price: product.price, status: "pending" }).select("status").single();
+    const { data: order, error } = await supabase.from("orders").insert({ product_id: product.id, buyer_id: currentUser.id, seller_id: product.seller_id, quantity: orderQuantity, price: product.price * orderQuantity, status: "pending" }).select("status").single();
     if (error) alert(error.message);
     else setOrderStatus(order.status);
     setPlacingOrder(false);
@@ -136,6 +138,7 @@ export function ProductDetails() {
             </Badge>
             <h1 className="text-3xl font-bold text-gray-900 mb-2 leading-tight">{product.title}</h1>
             <p className="text-4xl font-extrabold text-blue-600 mb-4">RM {product.price.toFixed(2)}</p>
+            {product.product_type === "clubmerch" && <p className="text-sm font-medium text-gray-600 mb-4">{product.stock_quantity > 0 ? `${product.stock_quantity} available` : "Out of stock"}</p>}
             <p className="text-gray-600 leading-relaxed whitespace-pre-wrap mb-8">{product.description}</p>
           </div>
 
@@ -158,6 +161,7 @@ export function ProductDetails() {
                 {isInCart(product.id) ? <Check className="w-4 h-4 mr-2" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
                 {isInCart(product.id) ? "Saved in cart" : "Add to cart"}
               </Button>
+              {product.product_type === "clubmerch" && <div className="mb-4 flex items-center justify-between gap-3"><label htmlFor="order-quantity" className="text-sm font-medium text-gray-700">Quantity</label><input id="order-quantity" type="number" min="1" max={product.stock_quantity || 1} value={orderQuantity} onChange={(event) => setOrderQuantity(Math.min(product.stock_quantity || 1, Math.max(1, Number(event.target.value) || 1)))} className="h-9 w-24 rounded-md border border-gray-300 px-3 text-center" /></div>}
               <Button className="w-full bg-green-600 hover:bg-green-700" onClick={placeOrder} disabled={placingOrder || !!orderStatus || product.availability !== "available" || currentUser?.id === product.seller_id}>
                 <ClipboardCheck className="w-4 h-4 mr-2" />{orderStatus === "pending" ? "Request sent" : orderStatus === "accepted" ? "Order accepted" : orderStatus === "completed" ? "Order completed" : product.availability !== "available" ? "Item unavailable" : placingOrder ? "Sending request..." : "Place Order"}
               </Button>

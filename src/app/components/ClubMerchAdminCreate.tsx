@@ -31,6 +31,7 @@ export function ClubMerchAdminCreate() {
     title: "",
     category: "",
     price: "",
+    stock_quantity: "1",
     description: "",
     image_urls: [] as string[]
   });
@@ -121,6 +122,7 @@ export function ClubMerchAdminCreate() {
         title: formData.title,
         description: formData.description,
         price: parseFloat(formData.price),
+        stock_quantity: Math.max(1, parseInt(formData.stock_quantity, 10) || 1),
         category: formData.category,
         product_type: "clubmerch",
         club_name: finalClubName,
@@ -211,6 +213,12 @@ export function ClubMerchAdminCreate() {
                 <div className="space-y-2">
                   <Label htmlFor="price" className="form-label">Price (RM)</Label>
                   <Input id="price" type="number" min="0" step="0.01" value={formData.price} onChange={(e) => handleInputChange("price", e.target.value)} required />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="stock_quantity" className="form-label">Available quantity</Label>
+                  <Input id="stock_quantity" type="number" min="1" step="1" value={formData.stock_quantity} onChange={(e) => handleInputChange("stock_quantity", e.target.value)} required />
+                  <p className="text-xs text-gray-500">Club merchandise stays available until this stock reaches zero.</p>
                 </div>
 
                 <div className="space-y-2">

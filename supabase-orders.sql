@@ -3,6 +3,15 @@ alter table public.products
   add column if not exists availability text not null default 'available';
 
 alter table public.products
+  add column if not exists stock_quantity integer not null default 1;
+
+alter table public.products
+  drop constraint if exists products_stock_quantity_check;
+
+alter table public.products
+  add constraint products_stock_quantity_check check (stock_quantity >= 0);
+
+alter table public.products
   drop constraint if exists products_availability_check;
 
 alter table public.products
@@ -14,12 +23,22 @@ create table if not exists public.orders (
   product_id uuid not null references public.products(id) on delete restrict,
   buyer_id uuid not null references auth.users(id) on delete restrict,
   seller_id uuid not null references auth.users(id) on delete restrict,
+  quantity integer not null default 1,
   price numeric not null,
   status text not null default 'pending',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint orders_status_check check (status in ('pending', 'accepted', 'rejected', 'completed', 'cancelled'))
 );
+
+alter table public.orders
+  add column if not exists quantity integer not null default 1;
+
+alter table public.orders
+  drop constraint if exists orders_quantity_check;
+
+alter table public.orders
+  add constraint orders_quantity_check check (quantity > 0);
 
 alter table public.orders enable row level security;
 

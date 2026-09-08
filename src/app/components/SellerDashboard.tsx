@@ -6,8 +6,8 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
-interface SellerProduct { id: string; title: string; price: number; status: string; availability: string; image_urls?: string[]; }
-interface Order { id: string; product_id: string; buyer_id: string; price: number; status: string; created_at: string; product?: { title: string }; buyer?: { full_name: string }; }
+interface SellerProduct { id: string; title: string; price: number; status: string; availability: string; product_type?: string; stock_quantity?: number; image_urls?: string[]; }
+interface Order { id: string; product_id: string; buyer_id: string; price: number; quantity?: number; status: string; created_at: string; product?: { title: string; product_type?: string; stock_quantity?: number }; buyer?: { full_name: string }; }
 interface Meetup { order_id: string; location: string | null; meetup_date: string | null; meetup_time: string | null; buyer_accepted: boolean; seller_accepted: boolean; status: string; }
 
 function formatMeetupTime(value: string | null) {
@@ -33,15 +33,15 @@ export function SellerDashboard() {
     if (!user) { navigate("/login"); return; }
     setUserId(user.id);
     const [{ data: productData }, { data: orderData }] = await Promise.all([
-      supabase.from("products").select("id, title, price, status, availability, image_urls").eq("seller_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("orders").select("id, product_id, buyer_id, price, status, created_at").eq("seller_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("products").select("id, title, price, status, availability, product_type, stock_quantity, image_urls").eq("seller_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("orders").select("id, product_id, buyer_id, price, quantity, status, created_at").eq("seller_id", user.id).order("created_at", { ascending: false }),
     ]);
     setProducts((productData || []) as SellerProduct[]);
     const buyerIds = [...new Set((orderData || []).map((order) => order.buyer_id))];
     const productIds = [...new Set((orderData || []).map((order) => order.product_id))];
     const [{ data: buyers }, { data: orderedProducts }] = await Promise.all([
       buyerIds.length ? supabase.from("profiles").select("id, full_name").in("id", buyerIds) : Promise.resolve({ data: [] }),
-      productIds.length ? supabase.from("products").select("id, title").in("id", productIds) : Promise.resolve({ data: [] }),
+      productIds.length ? supabase.from("products").select("id, title, product_type, stock_quantity").in("id", productIds) : Promise.resolve({ data: [] }),
     ]);
     setOrders((orderData || []).map((order) => ({
       ...order,
@@ -69,11 +69,22 @@ export function SellerDashboard() {
   }, [navigate]);
 
   const updateOrder = async (order: Order, status: "accepted" | "rejected" | "completed") => {
+    const product = products.find((item) => item.id === order.product_id);
+    if (status === "accepted" && product?.product_type === "clubmerch" && (product.stock_quantity ?? 1) < (order.quantity ?? 1)) {
+      alert(`Only ${product.stock_quantity ?? 0} unit(s) remain in stock.`);
+      return;
+    }
     const { error } = await supabase.from("orders").update({ status, updated_at: new Date().toISOString() }).eq("id", order.id).eq("seller_id", userId);
     if (error) { alert(error.message); return; }
     if (status === "accepted") {
-      await supabase.from("products").update({ availability: "sold" }).eq("id", order.product_id).eq("seller_id", userId);
-      await supabase.from("orders").update({ status: "cancelled" }).eq("product_id", order.product_id).eq("status", "pending").neq("id", order.id);
+      if (product?.product_type === "clubmerch") {
+        const remainingStock = Math.max(0, (product.stock_quantity ?? 1) - (order.quantity ?? 1));
+        const { error: stockError } = await supabase.from("products").update({ stock_quantity: remainingStock, availability: remainingStock === 0 ? "sold" : "available" }).eq("id", order.product_id).eq("seller_id", userId);
+        if (stockError) { alert(stockError.message); return; }
+      } else {
+        await supabase.from("products").update({ availability: "sold", stock_quantity: 0 }).eq("id", order.product_id).eq("seller_id", userId);
+        await supabase.from("orders").update({ status: "cancelled" }).eq("product_id", order.product_id).eq("status", "pending").neq("id", order.id);
+      }
     }
     await loadDashboard();
   };
