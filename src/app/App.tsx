@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { getMfaStatus } from "../auth";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { clearPasswordRecovery, getMfaStatus, isPasswordRecoverySession, rememberPasswordRecovery } from "../auth";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "./components/LoginPage";
 import { Register } from "./components/Register";
 import { MarketplaceFeed } from "./components/MarketplaceFeed";
@@ -43,6 +43,14 @@ export default function App() {
       return;
     }
 
+    // Recovery links create a temporary Auth session. Keep that session in the
+    // recovery-only layout instead of exposing the normal signed-in interface.
+    if (isPasswordRecoverySession(session)) {
+      setIsLoggedIn(false);
+      setLoadingAuth(false);
+      return;
+    }
+
     try {
       const { required } = await getMfaStatus(session);
       if (version === authCheckVersion.current) setIsLoggedIn(!required);
@@ -58,7 +66,9 @@ export default function App() {
     // onAuthStateChange fires with the initial session upon subscription,
     // avoiding redundant parallel getSession() calls that compete for locks
     let timer: ReturnType<typeof setTimeout>;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" && session) rememberPasswordRecovery(session);
+      if (event === "SIGNED_OUT") clearPasswordRecovery();
       // Auth callbacks run under the session lock. Defer further Auth calls.
       ++authCheckVersion.current;
       clearTimeout(timer);

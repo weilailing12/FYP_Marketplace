@@ -10,7 +10,7 @@ const result = await build({
       'export const supabase = { auth: { mfa: { getAuthenticatorAssuranceLevel: (...args) => globalThis.authCheck(...args) } } };', loader: 'js' }));
   } }],
 });
-const { getMfaStatus } = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`);
+const { getMfaStatus, rememberPasswordRecovery, isPasswordRecoverySession, clearPasswordRecovery } = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`);
 
 test('MFA gate uses the explicit session token and fails closed', async () => {
   const session = { access_token: 'test-token', user: { factors: [] } };
@@ -28,4 +28,20 @@ test('MFA gate uses the explicit session token and fails closed', async () => {
   globalThis.authCheck = async () => ({ data: { currentLevel: null, nextLevel: null }, error: null });
   await assert.rejects(getMfaStatus(session), /Unable to verify/);
   delete globalThis.authCheck;
+});
+
+test('password recovery marker is limited to the matching user and can be cleared', () => {
+  const values = new Map();
+  globalThis.sessionStorage = {
+    getItem: key => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+    removeItem: key => values.delete(key),
+  };
+  const recoverySession = { user: { id: 'recovery-user' } };
+  rememberPasswordRecovery(recoverySession);
+  assert.equal(isPasswordRecoverySession(recoverySession), true);
+  assert.equal(isPasswordRecoverySession({ user: { id: 'other-user' } }), false);
+  clearPasswordRecovery();
+  assert.equal(isPasswordRecoverySession(recoverySession), false);
+  delete globalThis.sessionStorage;
 });
