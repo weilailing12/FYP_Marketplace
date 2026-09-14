@@ -6,6 +6,7 @@ import { Card, CardContent } from "./ui/card";
 import { supabase } from "../../supabase";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { getBuyerOrderState } from "../../productState";
 
 export function ProductDetails() {
   const navigate = useNavigate();
@@ -57,39 +58,19 @@ export function ProductDetails() {
         }
 
         if (user && productData) {
-          const { data: userOrders } = await supabase
+          const { data: userOrders, error: ordersError } = await supabase
             .from("orders")
             .select("id, status, created_at")
             .eq("product_id", productData.id)
             .eq("buyer_id", user.id)
             .order("created_at", { ascending: false });
 
-          if (userOrders && userOrders.length > 0) {
-            const activeOrder = userOrders.find(
-              (order: any) => order.status === "pending" || order.status === "accepted"
-            );
-            const completedOrder = userOrders.find(
-              (order: any) => order.status === "completed"
-            );
-
-            if (productData.product_type === "clubmerch") {
-              if (activeOrder) {
-                setOrderStatus(activeOrder.status);
-                setHasCompletedPreviousOrder(false);
-              } else {
-                setOrderStatus(null);
-                if (completedOrder) {
-                  setHasCompletedPreviousOrder(true);
-                }
-              }
-            } else {
-              if (activeOrder) {
-                setOrderStatus(activeOrder.status);
-              } else if (completedOrder) {
-                setOrderStatus("completed");
-              }
-            }
-          }
+          if (ordersError) throw ordersError;
+          // Recompute on every realtime refresh, including rejected/cancelled
+          // requests and empty histories, so an old pending state cannot linger.
+          const nextState = getBuyerOrderState(productData.product_type, userOrders || []);
+          setOrderStatus(nextState.orderStatus);
+          setHasCompletedPreviousOrder(nextState.hasCompletedPreviousOrder);
         }
       } catch (error) {
         console.error("Error fetching details:", error);

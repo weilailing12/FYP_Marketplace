@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Upload, CheckCircle2, Image as ImageIcon, Package, Tag, DollarSign, FileText, Loader2, Save, ArrowLeft, X, Plus, Trash2 } from "lucide-react";
 import { supabase } from "../../supabase";
+import { getMerchInventory } from "../../productState";
 
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -58,7 +59,7 @@ export function EditProduct() {
             title: data.title || "",
             category: data.category || "",
             price: data.price ? data.price.toString() : "",
-            stock_quantity: data.stock_quantity ? data.stock_quantity.toString() : "1",
+            stock_quantity: (data.stock_quantity ?? 1).toString(),
             description: data.description || "",
             image_urls: data.image_urls || [], // Load the array!
             club_name: data.club_name || ""
@@ -146,7 +147,7 @@ export function EditProduct() {
         title: formData.title,
         description: formData.description,
         price: parseFloat(formData.price),
-        ...(productType === "clubmerch" ? { stock_quantity: Math.max(1, parseInt(formData.stock_quantity, 10) || 1) } : {}),
+        ...(productType === "clubmerch" ? getMerchInventory(formData.stock_quantity) : {}),
         category: formData.category,
         image_urls: formData.image_urls, // CHANGED to array
       };
@@ -259,7 +260,7 @@ export function EditProduct() {
                   </Select>
                 </div>
 
-                {productType === "clubmerch" && <div className="space-y-2"><Label htmlFor="stock_quantity" className="font-semibold text-gray-700">Available quantity</Label><Input id="stock_quantity" type="number" min="1" step="1" value={formData.stock_quantity} onChange={(e) => handleInputChange("stock_quantity", e.target.value)} required /></div>}
+                {productType === "clubmerch" && <div className="space-y-2"><Label htmlFor="stock_quantity" className="font-semibold text-gray-700">Available quantity</Label><Input id="stock_quantity" type="number" min="0" step="1" value={formData.stock_quantity} onChange={(e) => handleInputChange("stock_quantity", e.target.value)} required /></div>}
               </div>
             )}
 
