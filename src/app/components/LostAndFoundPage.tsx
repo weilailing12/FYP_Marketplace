@@ -215,7 +215,7 @@ function LostFoundCard({
                 size="sm"
                 variant="outline"
                 className="border-slate-200 text-slate-700 hover:bg-slate-50 h-8 text-xs font-medium"
-                onClick={() => navigate("/messages")}
+                onClick={() => navigate("/messages?tab=lostfound")}
                 title="View student inquiries in Messages"
               >
                 <MessageCircle className="h-3.5 w-3.5 mr-1 text-blue-600" />

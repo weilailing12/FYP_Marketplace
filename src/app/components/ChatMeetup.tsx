@@ -16,6 +16,8 @@ interface Message {
   text: string;
   image_url?: string;
   is_meetup_proposal?: boolean;
+  chat_type?: string;
+  item_id?: string | null;
   read_at?: string | null;
   created_at: string;
 }
@@ -111,7 +113,7 @@ export function ChatMeetup() {
         .single();
       if (sellerData) setSellerName(sellerData.full_name);
 
-      // Fetch Chat History
+      // Fetch Chat History (Marketplace only - exclude lostfound messages)
       const { data: chatHistory, error } = await supabase
         .from("messages")
         .select("*")
@@ -120,8 +122,10 @@ export function ChatMeetup() {
 
       if (error) console.error("Error fetching messages:", error);
       if (chatHistory) {
+        // Exclude lostfound messages from marketplace chat
+        const marketplaceHistory = chatHistory.filter((msg) => msg.chat_type !== "lostfound");
         shouldScrollToLatest.current = true;
-        setMessages(chatHistory);
+        setMessages(marketplaceHistory);
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -150,10 +154,11 @@ export function ChatMeetup() {
         },
         (payload) => {
           const newMsg = payload.new as Message;
-          // Only append if it belongs to this conversation
+          // Only append if it belongs to this conversation and is marketplace
           if (
-            (newMsg.sender_id === currentUserId && newMsg.receiver_id === sellerId) ||
-            (newMsg.sender_id === sellerId && newMsg.receiver_id === currentUserId)
+            newMsg.chat_type !== "lostfound" &&
+            ((newMsg.sender_id === currentUserId && newMsg.receiver_id === sellerId) ||
+            (newMsg.sender_id === sellerId && newMsg.receiver_id === currentUserId))
           ) {
             setMessages((prev) => [...prev, newMsg]);
             if (newMsg.sender_id === sellerId && newMsg.receiver_id === currentUserId) {
@@ -168,7 +173,10 @@ export function ChatMeetup() {
         { event: "UPDATE", schema: "public", table: "messages" },
         (payload) => {
           const updatedMessage = payload.new as Message;
-          if ((updatedMessage.sender_id === currentUserId && updatedMessage.receiver_id === sellerId) || (updatedMessage.sender_id === sellerId && updatedMessage.receiver_id === currentUserId)) {
+          if (
+            updatedMessage.chat_type !== "lostfound" &&
+            ((updatedMessage.sender_id === currentUserId && updatedMessage.receiver_id === sellerId) || (updatedMessage.sender_id === sellerId && updatedMessage.receiver_id === currentUserId))
+          ) {
             setMessages((prev) => prev.map((message) => message.id === updatedMessage.id ? updatedMessage : message));
           }
         }
@@ -233,7 +241,8 @@ export function ChatMeetup() {
         receiver_id: sellerId,
         text: textToSend,
         image_url: attachedImage || null,
-        is_meetup_proposal: isProposal
+        is_meetup_proposal: isProposal,
+        chat_type: "marketplace"
       }).select().single();
 
       if (error) throw error;

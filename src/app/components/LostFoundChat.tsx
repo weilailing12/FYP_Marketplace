@@ -28,6 +28,8 @@ interface Message {
   receiver_id: string;
   text: string;
   image_url?: string;
+  chat_type?: string;
+  item_id?: string | null;
   read_at?: string | null;
   created_at: string;
 }
@@ -120,17 +122,38 @@ export function LostFoundChat() {
         setLoadingItem(false);
       }
 
-      // Fetch Messages history
+      // Fetch Messages history (Lost & Found only)
       if (reporterId) {
-        const { data: chatHistory, error } = await supabase
+        const { data: rawChatHistory, error } = await supabase
           .from("messages")
           .select("*")
           .or(`and(sender_id.eq.${session.user.id},receiver_id.eq.${reporterId}),and(sender_id.eq.${reporterId},receiver_id.eq.${session.user.id})`)
           .order("created_at", { ascending: true });
 
-        if (!error && chatHistory) {
+        if (!error && rawChatHistory) {
+          // Scope to lostfound messages
+          const chatHistory = rawChatHistory.filter((msg) => msg.chat_type === "lostfound");
           setMessages(chatHistory);
           setTimeout(scrollToLatest, 100);
+
+          // If itemId was not passed in URL, auto-load item from latest message with item_id
+          if (!itemId) {
+            const msgWithItem = [...chatHistory].reverse().find((m) => m.item_id);
+            if (msgWithItem?.item_id) {
+              const { data: autoItem } = await supabase
+                .from("lost_and_found")
+                .select("*, profiles!lost_and_found_reporter_id_fkey(full_name)")
+                .eq("id", msgWithItem.item_id)
+                .maybeSingle();
+
+              if (autoItem) {
+                setItem(autoItem as unknown as ItemDetails);
+                if (autoItem.profiles?.full_name) {
+                  setReporterName(autoItem.profiles.full_name);
+                }
+              }
+            }
+          }
         }
 
         // Mark incoming messages as read
@@ -160,8 +183,9 @@ export function LostFoundChat() {
         (payload) => {
           const newMsg = payload.new as Message;
           if (
-            (newMsg.sender_id === currentUserId && newMsg.receiver_id === reporterId) ||
-            (newMsg.sender_id === reporterId && newMsg.receiver_id === currentUserId)
+            newMsg.chat_type === "lostfound" &&
+            ((newMsg.sender_id === currentUserId && newMsg.receiver_id === reporterId) ||
+            (newMsg.sender_id === reporterId && newMsg.receiver_id === currentUserId))
           ) {
             setMessages((prev) => [...prev, newMsg]);
             if (newMsg.sender_id === reporterId && newMsg.receiver_id === currentUserId) {
@@ -180,9 +204,15 @@ export function LostFoundChat() {
         { event: "UPDATE", schema: "public", table: "messages" },
         (payload) => {
           const updatedMsg = payload.new as Message;
-          setMessages((prev) =>
-            prev.map((msg) => (msg.id === updatedMsg.id ? updatedMsg : msg))
-          );
+          if (
+            updatedMsg.chat_type === "lostfound" &&
+            ((updatedMsg.sender_id === currentUserId && updatedMsg.receiver_id === reporterId) ||
+            (updatedMsg.sender_id === reporterId && updatedMsg.receiver_id === currentUserId))
+          ) {
+            setMessages((prev) =>
+              prev.map((msg) => (msg.id === updatedMsg.id ? updatedMsg : msg))
+            );
+          }
         }
       )
       .subscribe();
@@ -228,7 +258,9 @@ export function LostFoundChat() {
           receiver_id: reporterId,
           text: textToSend,
           image_url: attachedImage || null,
-          is_meetup_proposal: false
+          is_meetup_proposal: false,
+          chat_type: "lostfound",
+          item_id: itemId || item?.id || null
         })
         .select()
         .single();

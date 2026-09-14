@@ -101,6 +101,15 @@ create index if not exists meetup_proposals_order_id_idx on public.meetup_propos
 
 -- Read state for incoming chat notifications.
 alter table public.messages add column if not exists read_at timestamptz;
+alter table public.messages add column if not exists chat_type text not null default 'marketplace';
+alter table public.messages add column if not exists item_id uuid;
+
+alter table public.messages drop constraint if exists messages_chat_type_check;
+alter table public.messages add constraint messages_chat_type_check check (chat_type in ('marketplace', 'lostfound'));
+
+create index if not exists messages_chat_type_idx on public.messages(chat_type);
+create index if not exists messages_item_id_idx on public.messages(item_id);
+
 drop policy if exists "Users can mark received messages as read" on public.messages;
 create policy "Users can mark received messages as read"
   on public.messages for update to authenticated
