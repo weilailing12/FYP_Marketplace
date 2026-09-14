@@ -32,15 +32,14 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
-  const checkAuthStatus = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setIsLoggedIn(false);
-        setLoadingAuth(false);
-        return;
-      }
+  const checkSession = async (session: any) => {
+    if (!session) {
+      setIsLoggedIn(false);
+      setLoadingAuth(false);
+      return;
+    }
 
+    try {
       const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       // If user has MFA enabled (nextLevel is aal2) but hasn't completed it (currentLevel is aal1)
       if (assurance?.currentLevel === "aal1" && assurance?.nextLevel === "aal2") {
@@ -57,23 +56,19 @@ export default function App() {
   };
 
   useEffect(() => {
-    checkAuthStatus();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!session) {
-        setIsLoggedIn(false);
-        return;
-      }
-      const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (assurance?.currentLevel === "aal1" && assurance?.nextLevel === "aal2") {
-        setIsLoggedIn(false);
-      } else {
-        setIsLoggedIn(true);
-      }
+    // onAuthStateChange fires with the initial session upon subscription,
+    // avoiding redundant parallel getSession() calls that compete for locks
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      checkSession(session);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const handleRecheckAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    await checkSession(session);
+  };
 
   // Show a blank screen or a loading spinner while Supabase checks the session
   if (loadingAuth) {
@@ -88,7 +83,7 @@ export default function App() {
   if (!isLoggedIn) {
     return (
       <Routes>
-        <Route path="/login" element={<LoginPage onLogin={checkAuthStatus} />} />
+        <Route path="/login" element={<LoginPage onLogin={handleRecheckAuth} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
