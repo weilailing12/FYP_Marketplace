@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import type { Session } from "@supabase/supabase-js";
+import { getMfaStatus } from "../auth";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { LoginPage } from "./components/LoginPage";
 import { Register } from "./components/Register";
@@ -32,7 +34,9 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
-  const checkSession = async (session: any) => {
+  const authCheckVersion = useRef(0);
+  const checkSession = async (session: Session | null) => {
+    const version = ++authCheckVersion.current;
     if (!session) {
       setIsLoggedIn(false);
       setLoadingAuth(false);
@@ -40,29 +44,28 @@ export default function App() {
     }
 
     try {
-      const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      // If user has MFA enabled (nextLevel is aal2) but hasn't completed it (currentLevel is aal1)
-      if (assurance?.currentLevel === "aal1" && assurance?.nextLevel === "aal2") {
-        setIsLoggedIn(false);
-      } else {
-        setIsLoggedIn(true);
-      }
+      const { required } = await getMfaStatus(session);
+      if (version === authCheckVersion.current) setIsLoggedIn(!required);
     } catch (err) {
       console.error("Auth check error:", err);
-      setIsLoggedIn(false);
+      if (version === authCheckVersion.current) setIsLoggedIn(false);
     } finally {
-      setLoadingAuth(false);
+      if (version === authCheckVersion.current) setLoadingAuth(false);
     }
   };
 
   useEffect(() => {
     // onAuthStateChange fires with the initial session upon subscription,
     // avoiding redundant parallel getSession() calls that compete for locks
+    let timer: ReturnType<typeof setTimeout>;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      checkSession(session);
+      // Auth callbacks run under the session lock. Defer further Auth calls.
+      ++authCheckVersion.current;
+      clearTimeout(timer);
+      timer = setTimeout(() => { void checkSession(session); }, 0);
     });
 
-    return () => subscription.unsubscribe();
+    return () => { clearTimeout(timer); ++authCheckVersion.current; subscription.unsubscribe(); };
   }, []);
 
   const handleRecheckAuth = async () => {

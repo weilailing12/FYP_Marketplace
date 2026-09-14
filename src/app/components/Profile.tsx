@@ -181,16 +181,12 @@ export function Profile() {
     setPrivacyMessage("");
     if (newPassword.length < 8) { setPrivacyError("New password must be at least 8 characters."); return; }
     if (newPassword !== confirmPassword) { setPrivacyError("New passwords do not match."); return; }
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.email) { setPrivacyError("Unable to identify your account."); return; }
-    const { error: reauthError } = await supabase.auth.signInWithPassword({ email: user.email, password: oldPassword });
-    if (reauthError) { setPrivacyError("The current password is incorrect."); return; }
-
-    const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (assurance?.currentLevel === "aal1" && assurance.nextLevel === "aal2") {
-      const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
-      const factor = factors?.totp.find((item) => item.status === "verified");
-      if (factorsError || !factor) { setPrivacyError(factorsError?.message || "No verified authenticator was found."); return; }
+    // Keep the existing AAL2 session. Signing in again here downgrades it to
+    // AAL1 and the application gate unmounts this form before MFA completes.
+    const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
+    if (factorsError) { setPrivacyError(factorsError.message); return; }
+    const factor = factors?.totp.find((item) => item.status === "verified");
+    if (factor) {
       const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: factor.id });
       if (challengeError) { setPrivacyError(challengeError.message); return; }
       setPasswordMfaFactorId(factor.id);
@@ -199,7 +195,7 @@ export function Profile() {
       return;
     }
 
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const { error } = await supabase.auth.updateUser({ password: newPassword, current_password: oldPassword });
     if (error) setPrivacyError(error.message);
     else { setOldPassword(""); setNewPassword(""); setConfirmPassword(""); setPrivacyMessage("Password changed successfully."); }
   };
@@ -214,7 +210,7 @@ export function Profile() {
     });
     if (verifyError) { setPrivacyError("Invalid authenticator code. Please try again."); return; }
 
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const { error } = await supabase.auth.updateUser({ password: newPassword, current_password: oldPassword });
     if (error) { setPrivacyError(error.message); return; }
     setPasswordMfaFactorId(null);
     setPasswordMfaChallengeId(null);

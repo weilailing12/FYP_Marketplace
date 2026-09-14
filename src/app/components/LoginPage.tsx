@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../supabase";
+import { getMfaStatus } from "../../auth";
 import { ShieldCheck, ArrowLeft } from "lucide-react";
 
 // Defined the Props to match your App.tsx logic
@@ -26,14 +27,14 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (assurance?.currentLevel === "aal1" && assurance?.nextLevel === "aal2") {
+        const { required } = await getMfaStatus(session);
+        if (required) {
           const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
           const factor = factors?.totp.find((item) => item.status === "verified");
-          if (factorsError || !factor) return;
+          if (factorsError || !factor) throw factorsError || new Error("No verified authenticator was found.");
 
           const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: factor.id });
-          if (challengeError) return;
+          if (challengeError) throw challengeError;
 
           setMfaFactorId(factor.id);
           setMfaChallengeId(challenge.id);
@@ -41,6 +42,7 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
         }
       } catch (err) {
         console.error("Error checking pending MFA status:", err);
+        setError(err instanceof Error ? err.message : "Unable to check MFA. Please try logging in again.");
       }
     }
     checkPendingMfa();
@@ -60,8 +62,9 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
       if (authError) throw authError;
 
       // Check if MFA is required for this account
-      const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (assurance?.currentLevel === "aal1" && assurance.nextLevel === "aal2") {
+      if (!data.session) throw new Error("Login did not return a session.");
+      const { required } = await getMfaStatus(data.session);
+      if (required) {
         const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
         const factor = factors?.totp.find((item) => item.status === "verified");
         if (factorsError || !factor) throw factorsError || new Error("No verified authenticator was found.");
