@@ -20,6 +20,7 @@ import {
   MessageCircle
 } from "lucide-react";
 import { supabase } from "../../supabase";
+import { useChatImage } from "./useChatImage";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 interface Message {
@@ -66,7 +67,7 @@ export function LostFoundChat() {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
-  const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const { attachedImage, setAttachedImage, isUploadingImage, imageError, handleImageUpload } = useChatImage(currentUserId, `${reporterId}:${itemId || ""}`);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -248,7 +249,7 @@ export function LostFoundChat() {
 
   const handleSendMessage = async (customText?: string) => {
     const textToSend = (customText || inputText).trim();
-    if ((!textToSend && !attachedImage) || !currentUserId || !reporterId) return;
+    if (isUploadingImage || (!textToSend && !attachedImage) || !currentUserId || !reporterId) return;
 
     try {
       const { data: sentMessage, error } = await supabase
@@ -280,13 +281,6 @@ export function LostFoundChat() {
       console.error("Failed to send message", err);
       alert("Failed to send message. Please check your connection.");
     }
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const previewUrl = URL.createObjectURL(file);
-    setAttachedImage(previewUrl);
   };
 
   const handleMarkReturned = async () => {
@@ -590,6 +584,7 @@ export function LostFoundChat() {
                     key={idx}
                     type="button"
                     onClick={() => handleSendMessage(chip)}
+                    disabled={isUploadingImage}
                     className="text-xs bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 px-3 py-1 rounded-full whitespace-nowrap transition-colors border border-slate-200/60 shrink-0"
                   >
                     {chip}
@@ -599,6 +594,8 @@ export function LostFoundChat() {
 
               {/* Chat Input Bar */}
               <div className="p-3 sm:p-4 border-t border-slate-100 bg-white">
+                {isUploadingImage && <p role="status" className="mb-2 text-sm text-blue-600">Uploading image...</p>}
+                {imageError && <p role="alert" className="mb-2 text-sm text-red-600">{imageError}</p>}
                 {attachedImage && (
                   <div className="mb-2 relative inline-block">
                     <img
@@ -617,7 +614,7 @@ export function LostFoundChat() {
                 <div className="flex items-center gap-2">
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
                     className="hidden"
                     ref={fileInputRef}
                     onChange={handleImageUpload}
@@ -627,6 +624,8 @@ export function LostFoundChat() {
                     size="icon"
                     className="text-slate-500 hover:text-blue-600"
                     onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingImage}
+                    aria-label="Attach image"
                   >
                     <Paperclip className="h-4 w-4" />
                   </Button>
@@ -640,6 +639,8 @@ export function LostFoundChat() {
                   <Button
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4"
                     onClick={() => handleSendMessage()}
+                    disabled={isUploadingImage}
+                    aria-label="Send message"
                   >
                     <Send className="h-4 w-4" />
                   </Button>

@@ -7,6 +7,7 @@ import { Label } from "./ui/label";
 import { Send, Paperclip, X, Calendar, Clock } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { supabase } from "../../supabase";
+import { useChatImage } from "./useChatImage";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 interface Message {
@@ -68,7 +69,7 @@ export function ChatMeetup() {
   const [isBuyer, setIsBuyer] = useState(false);
 
   const [inputText, setInputText] = useState("");
-  const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const { attachedImage, setAttachedImage, isUploadingImage, imageError, handleImageUpload } = useChatImage(currentUserId, sellerId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const shouldScrollToLatest = useRef(true);
@@ -218,22 +219,9 @@ export function ChatMeetup() {
     setShowLatestButton(false);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // For demo purposes, we will just use local preview and upload it as a data URL,
-    // or upload to a storage bucket if you prefer. To keep it simple, we use createObjectURL here,
-    // but in production, you MUST upload `file` to `supabase.storage` and get a public URL!
-    const previewUrl = URL.createObjectURL(file);
-    setAttachedImage(previewUrl);
-  };
-
   const handleSendMessage = async (textOverride?: string, isProposal = false) => {
     const textToSend = textOverride || inputText;
-    if ((!textToSend.trim() && !attachedImage) || !currentUserId || !sellerId) return;
-
-    // Optional: Upload `attachedImage` file to supabase storage here if it's a real file.
+    if (isUploadingImage || (!textToSend.trim() && !attachedImage) || !currentUserId || !sellerId) return;
     
     try {
       const { data: sentMessage, error } = await supabase.from("messages").insert({
@@ -402,6 +390,8 @@ export function ChatMeetup() {
             </CardContent>
 
             <div className="p-4 border-t bg-white">
+              {isUploadingImage && <p role="status" className="mb-2 text-sm text-blue-600">Uploading image...</p>}
+              {imageError && <p role="alert" className="mb-2 text-sm text-red-600">{imageError}</p>}
               {attachedImage && (
                 <div className="mb-3 relative inline-block">
                   <img src={attachedImage} className="h-20 w-20 object-cover rounded-md border" alt="preview" />
@@ -409,10 +399,10 @@ export function ChatMeetup() {
                 </div>
               )}
               <div className="flex gap-2">
-                <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
-                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}><Paperclip className="h-5 w-5" /></Button>
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
+                <Button variant="ghost" size="icon" disabled={isUploadingImage} aria-label="Attach image" onClick={() => fileInputRef.current?.click()}><Paperclip className="h-5 w-5" /></Button>
                 <Input placeholder="Type a message..." className="flex-1" value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} />
-                <Button className="bg-blue-600" onClick={() => handleSendMessage()}><Send className="h-4 w-4" /></Button>
+                <Button className="bg-blue-600" disabled={isUploadingImage} aria-label="Send message" onClick={() => handleSendMessage()}><Send className="h-4 w-4" /></Button>
               </div>
             </div>
           </Card>
