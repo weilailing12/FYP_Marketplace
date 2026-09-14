@@ -160,7 +160,7 @@ export function ChatMeetup() {
             ((newMsg.sender_id === currentUserId && newMsg.receiver_id === sellerId) ||
             (newMsg.sender_id === sellerId && newMsg.receiver_id === currentUserId))
           ) {
-            setMessages((prev) => [...prev, newMsg]);
+            setMessages((prev) => prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg]);
             if (newMsg.sender_id === sellerId && newMsg.receiver_id === currentUserId) {
               supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("id", newMsg.id).eq("receiver_id", currentUserId);
               window.dispatchEvent(new Event("campustrade-messages-read"));

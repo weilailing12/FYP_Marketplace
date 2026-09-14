@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Clock3, Edit, Eye, Package, X } from "lucide-react";
+import { Check, Clock3, Edit, Eye, Package, Trash2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../supabase";
 import { Badge } from "./ui/badge";
@@ -95,6 +95,39 @@ export function SellerDashboard() {
     setMeetups((current) => current.map((item) => item.order_id === meetup.order_id ? { ...item, ...data } : item));
   };
 
+  const deleteListing = async (productId: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) return;
+    try {
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", productId)
+        .eq("seller_id", userId);
+
+      if (error) {
+        // If there are existing order records referencing this product, unlist/hide it
+        if (error.code === "23503" || error.message.includes("foreign key") || error.message.includes("orders")) {
+          await supabase
+            .from("products")
+            .update({ status: "hidden", availability: "sold" })
+            .eq("id", productId)
+            .eq("seller_id", userId);
+
+          setProducts((prev) => prev.filter((p) => p.id !== productId));
+          alert(`"${title}" has past order records, so it has been archived and removed from your active marketplace listings.`);
+          return;
+        }
+        throw error;
+      }
+
+      setProducts((prev) => prev.filter((p) => p.id !== productId));
+      alert(`"${title}" was successfully deleted.`);
+    } catch (err: any) {
+      console.error("Failed to delete product:", err);
+      alert(err.message || "Failed to delete listing.");
+    }
+  };
+
   if (loading) return <div className="p-10 text-center text-gray-500">Loading seller dashboard...</div>;
 
   return (
@@ -116,7 +149,8 @@ export function SellerDashboard() {
         </CardContent></Card>
         <Card><CardHeader><CardTitle>Meetup Recommendations</CardTitle></CardHeader><CardContent className="space-y-3">{meetups.length === 0 && <p className="text-gray-500">No meetup proposal yet.</p>}{meetups.map((meetup) => <div key={meetup.order_id} className="rounded-lg border p-3 text-sm bg-white"><p>Location: {meetup.location || "Pickup location not set"}</p><p>Date: {meetup.meetup_date || "Pickup date not set"}</p><p>Time: {formatMeetupTime(meetup.meetup_time)}</p><p className="font-medium mt-1">Buyer: {meetup.buyer_accepted ? "Accepted" : "Waiting"} · Seller: {meetup.seller_accepted ? "Accepted" : "Waiting"}</p>{meetup.status !== "confirmed" && !meetup.seller_accepted && <Button size="sm" className="mt-3 bg-green-600 hover:bg-green-700" onClick={() => acceptMeetup(meetup)}>Accept Meetup</Button>}{meetup.status === "confirmed" && <p className="text-green-700 font-semibold mt-2">Meetup confirmed</p>}</div>)}</CardContent></Card>
         <Card><CardHeader><CardTitle className="flex items-center gap-2"><Package className="h-5 w-5 text-blue-600" /> My Listings</CardTitle></CardHeader><CardContent className="space-y-3">
-          {products.map((product) => <div key={product.id} className="flex items-center gap-3 border rounded-lg p-3 bg-white"><img src={product.image_urls?.[0] || "https://via.placeholder.com/80"} alt="" className="h-14 w-14 rounded object-cover" /><div className="flex-1"><p className="font-semibold">{product.title}</p><p className="text-sm text-blue-600">RM {Number(product.price).toFixed(2)}</p></div><Badge variant="outline">{product.availability || "available"}</Badge><Button size="sm" variant="outline" onClick={() => navigate(`/product/${product.id}`)}><Eye className="h-4 w-4 mr-1" /> View</Button><Button size="sm" variant="outline" onClick={() => navigate(`/edit/${product.id}`)}><Edit className="h-4 w-4 mr-1" /> Edit</Button></div>)}
+          {products.length === 0 && <p className="text-gray-500 py-6 text-center">You have no listings yet.</p>}
+          {products.map((product) => <div key={product.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border rounded-lg p-3 bg-white"><div className="flex items-center gap-3"><img src={product.image_urls?.[0] || "https://via.placeholder.com/80"} alt="" className="h-14 w-14 rounded object-cover flex-shrink-0" /><div><p className="font-semibold">{product.title}</p><p className="text-sm text-blue-600">RM {Number(product.price).toFixed(2)}</p></div></div><div className="flex items-center gap-2 self-end sm:self-auto"><Badge variant="outline">{product.availability || "available"}</Badge><Button size="sm" variant="outline" onClick={() => navigate(`/product/${product.id}`)}><Eye className="h-4 w-4 mr-1" /> View</Button><Button size="sm" variant="outline" onClick={() => navigate(`/edit/${product.id}`)}><Edit className="h-4 w-4 mr-1" /> Edit</Button><Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700" onClick={() => deleteListing(product.id, product.title)}><Trash2 className="h-4 w-4 mr-1" /> Delete</Button></div></div>)}
         </CardContent></Card>
       </div>
     </div>

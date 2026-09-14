@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, MessageCircle, User, Loader2, Tag, Edit2, ShoppingCart, Check, ClipboardCheck } from "lucide-react";
+import { ArrowLeft, MessageCircle, User, Loader2, Tag, Edit2, ShoppingCart, Check, ClipboardCheck, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Card, CardContent } from "./ui/card";
@@ -146,6 +146,37 @@ export function ProductDetails() {
     setPlacingOrder(false);
   };
 
+  const handleDeleteProduct = async () => {
+    if (!product || !window.confirm(`Are you sure you want to delete "${product.title}"?`)) return;
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', product.id)
+        .eq('seller_id', currentUser?.id);
+
+      if (error) {
+        if (error.code === '23503' || error.message.includes('foreign key') || error.message.includes('orders')) {
+          await supabase
+            .from('products')
+            .update({ status: 'hidden', availability: 'sold' })
+            .eq('id', product.id);
+
+          alert(`"${product.title}" has past orders, so it has been archived and unlisted from the marketplace.`);
+          navigate("/seller-dashboard");
+          return;
+        }
+        throw error;
+      }
+
+      alert("Listing deleted successfully.");
+      navigate("/seller-dashboard");
+    } catch (err: any) {
+      console.error("Failed to delete product:", err);
+      alert(err.message || "Failed to delete listing.");
+    }
+  };
+
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-blue-500" /></div>;
   if (!product) return <div className="flex justify-center py-20 text-xl font-bold">Item not found</div>;
 
@@ -156,9 +187,18 @@ export function ProductDetails() {
           <ArrowLeft className="h-4 w-4 mr-2" /> Back
         </button>
         {currentUser?.id === product.seller_id && (
-          <Button variant="outline" onClick={() => navigate(`/edit/${product.id}`)} className="text-blue-600 border-blue-200 hover:bg-blue-50">
-            <Edit2 className="w-4 h-4 mr-2" /> Edit Listing
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => navigate(`/edit/${product.id}`)} className="text-blue-600 border-blue-200 hover:bg-blue-50">
+              <Edit2 className="w-4 h-4 mr-2" /> Edit Listing
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleDeleteProduct} 
+              className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+            >
+              <Trash2 className="w-4 h-4 mr-2" /> Delete
+            </Button>
+          </div>
         )}
       </div>
 

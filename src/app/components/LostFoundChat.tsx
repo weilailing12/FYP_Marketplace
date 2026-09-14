@@ -187,7 +187,7 @@ export function LostFoundChat() {
             ((newMsg.sender_id === currentUserId && newMsg.receiver_id === reporterId) ||
             (newMsg.sender_id === reporterId && newMsg.receiver_id === currentUserId))
           ) {
-            setMessages((prev) => [...prev, newMsg]);
+            setMessages((prev) => prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg]);
             if (newMsg.sender_id === reporterId && newMsg.receiver_id === currentUserId) {
               supabase
                 .from("messages")

@@ -5,7 +5,7 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Upload, CheckCircle2, Image as ImageIcon, Package, Tag, DollarSign, FileText, Loader2, Save, ArrowLeft, X, Plus } from "lucide-react";
+import { Upload, CheckCircle2, Image as ImageIcon, Package, Tag, DollarSign, FileText, Loader2, Save, ArrowLeft, X, Plus, Trash2 } from "lucide-react";
 import { supabase } from "../../supabase";
 
 import { useNavigate, useParams } from "react-router-dom";
@@ -172,6 +172,41 @@ export function EditProduct() {
     }
   };
 
+  const handleDeleteProduct = async () => {
+    if (!productId || !window.confirm(`Are you sure you want to delete "${formData.title}"?`)) return;
+    setIsSubmitting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId)
+        .eq('seller_id', user?.id);
+
+      if (error) {
+        if (error.code === '23503' || error.message.includes('foreign key') || error.message.includes('orders')) {
+          await supabase
+            .from('products')
+            .update({ status: 'hidden', availability: 'sold' })
+            .eq('id', productId);
+
+          alert(`"${formData.title}" has past orders, so it has been archived and removed from active listings.`);
+          navigate("/seller-dashboard");
+          return;
+        }
+        throw error;
+      }
+
+      alert("Listing deleted successfully.");
+      navigate("/seller-dashboard");
+    } catch (err: any) {
+      console.error("Failed to delete listing:", err);
+      alert(err.message || "Failed to delete listing.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-gray-500">
@@ -316,17 +351,28 @@ export function EditProduct() {
               </div>
             </div>
 
-            <div className="pt-6 border-t flex items-center justify-end space-x-4">
-              <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={isSubmitting}>
-                Cancel
+            <div className="pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 w-full sm:w-auto" 
+                onClick={handleDeleteProduct}
+                disabled={isSubmitting}
+              >
+                <Trash2 className="h-4 w-4 mr-2" /> Delete Listing
               </Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white min-w-[150px]" disabled={isSubmitting || !formData.title || !formData.category || !formData.price || !formData.description}>
-                {isSubmitting ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
-                ) : (
-                  <><Save className="h-4 w-4 mr-2" /> Save Changes</>
-                )}
-              </Button>
+              <div className="flex items-center space-x-4 w-full sm:w-auto justify-end">
+                <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={isSubmitting}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white min-w-[150px]" disabled={isSubmitting || !formData.title || !formData.category || !formData.price || !formData.description}>
+                  {isSubmitting ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
+                  ) : (
+                    <><Save className="h-4 w-4 mr-2" /> Save Changes</>
+                  )}
+                </Button>
+              </div>
             </div>
           </form>
         </CardContent>

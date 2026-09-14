@@ -18,6 +18,25 @@ alter table public.products
   add constraint products_availability_check
   check (availability in ('available', 'reserved', 'sold'));
 
+-- Enable RLS and permissions on products
+alter table public.products enable row level security;
+
+drop policy if exists "Anyone can view active available products" on public.products;
+create policy "Anyone can view active available products"
+  on public.products for select to authenticated
+  using (true);
+
+drop policy if exists "Sellers can delete their own products" on public.products;
+create policy "Sellers can delete their own products"
+  on public.products for delete to authenticated
+  using (seller_id = auth.uid());
+
+drop policy if exists "Sellers can update their own products" on public.products;
+create policy "Sellers can update their own products"
+  on public.products for update to authenticated
+  using (seller_id = auth.uid())
+  with check (seller_id = auth.uid());
+
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   product_id uuid not null references public.products(id) on delete restrict,
