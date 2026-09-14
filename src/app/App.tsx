@@ -32,16 +32,44 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
-  useEffect(() => {
-    // 1. Check if they are already logged in when the app loads (prevents logout on refresh)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLoggedIn(!!session);
-      setLoadingAuth(false);
-    });
+  const checkAuthStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setIsLoggedIn(false);
+        setLoadingAuth(false);
+        return;
+      }
 
-    // 2. Listen for login/logout events automatically (This replaces handleLogin!)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session);
+      const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      // If user has MFA enabled (nextLevel is aal2) but hasn't completed it (currentLevel is aal1)
+      if (assurance?.currentLevel === "aal1" && assurance?.nextLevel === "aal2") {
+        setIsLoggedIn(false);
+      } else {
+        setIsLoggedIn(true);
+      }
+    } catch (err) {
+      console.error("Auth check error:", err);
+      setIsLoggedIn(false);
+    } finally {
+      setLoadingAuth(false);
+    }
+  };
+
+  useEffect(() => {
+    checkAuthStatus();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!session) {
+        setIsLoggedIn(false);
+        return;
+      }
+      const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (assurance?.currentLevel === "aal1" && assurance?.nextLevel === "aal2") {
+        setIsLoggedIn(false);
+      } else {
+        setIsLoggedIn(true);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -60,7 +88,7 @@ export default function App() {
   if (!isLoggedIn) {
     return (
       <Routes>
-        <Route path="/login" element={<LoginPage onLogin={() => {}} />} />
+        <Route path="/login" element={<LoginPage onLogin={checkAuthStatus} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
