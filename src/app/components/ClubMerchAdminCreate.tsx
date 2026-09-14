@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -20,6 +20,7 @@ const clubOptions = [
 
 export function ClubMerchAdminCreate() {
   const navigate = useNavigate();
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -37,6 +38,37 @@ export function ClubMerchAdminCreate() {
   });
   
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    async function verifyAdminAccess() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          navigate('/login', { replace: true });
+          return;
+        }
+
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error || !profile?.is_admin) {
+          alert("Access Denied: Only administrators can create club merchandise.");
+          navigate('/clubmerch', { replace: true });
+          return;
+        }
+
+        setCheckingAuth(false);
+      } catch (err) {
+        console.error("Error verifying admin permissions:", err);
+        navigate('/clubmerch', { replace: true });
+      }
+    }
+
+    verifyAdminAccess();
+  }, [navigate]);
 
   // NEW: Handle array of images
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,6 +144,21 @@ export function ClubMerchAdminCreate() {
       if (!sellerId) {
         alert("You must be logged in to create a listing.");
         setIsSubmitting(false);
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      // Verify admin role prior to insertion
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', sellerId)
+        .single();
+
+      if (profileError || !profile?.is_admin) {
+        alert("Access Denied: You do not have administrator permissions to create club merchandise.");
+        setIsSubmitting(false);
+        navigate('/clubmerch', { replace: true });
         return;
       }
 
@@ -145,6 +192,15 @@ export function ClubMerchAdminCreate() {
       setIsSubmitting(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
+        <p className="text-gray-600 font-medium">Verifying administrator permissions...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

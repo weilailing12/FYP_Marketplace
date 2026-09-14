@@ -54,6 +54,34 @@ export function EditProduct() {
         if (error) throw error;
         
         if (data) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            navigate('/login', { replace: true });
+            return;
+          }
+
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', session.user.id)
+            .single();
+
+          const isClubMerch = data.product_type === 'clubmerch';
+          const isOwner = data.seller_id === session.user.id;
+          const isAdmin = !!profile?.is_admin;
+
+          if (isClubMerch && !isAdmin) {
+            alert("Access Denied: Only administrators can edit club merchandise.");
+            navigate('/clubmerch', { replace: true });
+            return;
+          }
+
+          if (!isClubMerch && !isOwner && !isAdmin) {
+            alert("Access Denied: You do not have permission to edit this listing.");
+            navigate('/marketplace', { replace: true });
+            return;
+          }
+
           setProductType(data.product_type || "secondhand");
           setFormData({
             title: data.title || "",
@@ -143,6 +171,28 @@ export function EditProduct() {
     setIsSubmitting(true);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert("You must be logged in to edit this listing.");
+        setIsSubmitting(false);
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', session.user.id)
+        .single();
+
+      const isAdmin = !!profile?.is_admin;
+      if (productType === "clubmerch" && !isAdmin) {
+        alert("Access Denied: Only administrators can update club merchandise.");
+        setIsSubmitting(false);
+        navigate('/clubmerch', { replace: true });
+        return;
+      }
+
       const updatePayload: any = {
         title: formData.title,
         description: formData.description,

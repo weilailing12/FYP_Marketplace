@@ -24,6 +24,24 @@ export function ClubMerchAdminDashboard() {
   const fetchClubMerch = async () => {
     setLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileError || !profile?.is_admin) {
+        alert("Access Denied: You are not an administrator.");
+        navigate('/clubmerch', { replace: true });
+        return;
+      }
+
       const { data, error } = await supabase
         .from('products')
         .select('*')
