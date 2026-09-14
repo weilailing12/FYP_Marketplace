@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../../supabase";
 import { useChatImage } from "./useChatImage";
+import { isLostFoundMessage } from "../../chatScope";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 interface Message {
@@ -125,15 +126,18 @@ export function LostFoundChat() {
 
       // Fetch Messages history (Lost & Found only)
       if (reporterId) {
-        const { data: rawChatHistory, error } = await supabase
+        let historyQuery = supabase
           .from("messages")
           .select("*")
           .or(`and(sender_id.eq.${session.user.id},receiver_id.eq.${reporterId}),and(sender_id.eq.${reporterId},receiver_id.eq.${session.user.id})`)
+          .eq("chat_type", "lostfound");
+        if (itemId) historyQuery = historyQuery.eq("item_id", itemId);
+        const { data: rawChatHistory, error } = await historyQuery
           .order("created_at", { ascending: true });
 
         if (!error && rawChatHistory) {
           // Scope to lostfound messages
-          const chatHistory = rawChatHistory.filter((msg) => msg.chat_type === "lostfound");
+          const chatHistory = rawChatHistory.filter((msg) => isLostFoundMessage(msg, itemId));
           setMessages(chatHistory);
           setTimeout(scrollToLatest, 100);
 
@@ -158,14 +162,18 @@ export function LostFoundChat() {
         }
 
         // Mark incoming messages as read
-        await supabase
+        let readQuery = supabase
           .from("messages")
           .update({ read_at: new Date().toISOString() })
           .eq("sender_id", reporterId)
           .eq("receiver_id", session.user.id)
+          .eq("chat_type", "lostfound");
+        if (itemId) readQuery = readQuery.eq("item_id", itemId);
+        const { error: readError } = await readQuery
           .is("read_at", null);
 
-        window.dispatchEvent(new Event("campustrade-messages-read"));
+        if (readError) console.error("Failed to mark lost-and-found messages as read:", readError);
+        else window.dispatchEvent(new Event("campustrade-messages-read"));
       }
     }
 
@@ -181,21 +189,22 @@ export function LostFoundChat() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
-        (payload) => {
+        async (payload) => {
           const newMsg = payload.new as Message;
           if (
-            newMsg.chat_type === "lostfound" &&
+            isLostFoundMessage(newMsg, itemId) &&
             ((newMsg.sender_id === currentUserId && newMsg.receiver_id === reporterId) ||
             (newMsg.sender_id === reporterId && newMsg.receiver_id === currentUserId))
           ) {
             setMessages((prev) => prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg]);
             if (newMsg.sender_id === reporterId && newMsg.receiver_id === currentUserId) {
-              supabase
+              const { error } = await supabase
                 .from("messages")
                 .update({ read_at: new Date().toISOString() })
                 .eq("id", newMsg.id)
                 .eq("receiver_id", currentUserId);
-              window.dispatchEvent(new Event("campustrade-messages-read"));
+              if (error) console.error("Failed to mark lost-and-found message as read:", error);
+              else window.dispatchEvent(new Event("campustrade-messages-read"));
             }
           }
         }
@@ -206,7 +215,7 @@ export function LostFoundChat() {
         (payload) => {
           const updatedMsg = payload.new as Message;
           if (
-            updatedMsg.chat_type === "lostfound" &&
+            isLostFoundMessage(updatedMsg, itemId) &&
             ((updatedMsg.sender_id === currentUserId && updatedMsg.receiver_id === reporterId) ||
             (updatedMsg.sender_id === reporterId && updatedMsg.receiver_id === currentUserId))
           ) {
@@ -221,7 +230,7 @@ export function LostFoundChat() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUserId, reporterId]);
+  }, [currentUserId, reporterId, itemId]);
 
   // Scroll helpers
   useEffect(() => {

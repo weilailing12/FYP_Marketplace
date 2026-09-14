@@ -8,6 +8,7 @@ import { Send, Paperclip, X, Calendar, Clock } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { supabase } from "../../supabase";
 import { useChatImage } from "./useChatImage";
+import { isMarketplaceMessage } from "../../chatScope";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 interface Message {
@@ -119,12 +120,13 @@ export function ChatMeetup() {
         .from("messages")
         .select("*")
         .or(`and(sender_id.eq.${session.user.id},receiver_id.eq.${sellerId}),and(sender_id.eq.${sellerId},receiver_id.eq.${session.user.id})`)
+        .or("chat_type.neq.lostfound,chat_type.is.null")
         .order("created_at", { ascending: true });
 
       if (error) console.error("Error fetching messages:", error);
       if (chatHistory) {
         // Exclude lostfound messages from marketplace chat
-        const marketplaceHistory = chatHistory.filter((msg) => msg.chat_type !== "lostfound");
+        const marketplaceHistory = chatHistory.filter(isMarketplaceMessage);
         shouldScrollToLatest.current = true;
         setMessages(marketplaceHistory);
         requestAnimationFrame(() => {
@@ -134,8 +136,15 @@ export function ChatMeetup() {
         });
         setTimeout(scrollToLatest, 250);
       }
-      await supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("sender_id", sellerId).eq("receiver_id", session.user.id).is("read_at", null);
-      window.dispatchEvent(new Event("campustrade-messages-read"));
+      const { error: readError } = await supabase
+        .from("messages")
+        .update({ read_at: new Date().toISOString() })
+        .eq("sender_id", sellerId)
+        .eq("receiver_id", session.user.id)
+        .or("chat_type.neq.lostfound,chat_type.is.null")
+        .is("read_at", null);
+      if (readError) console.error("Failed to mark marketplace messages as read:", readError);
+      else window.dispatchEvent(new Event("campustrade-messages-read"));
     }
     initChat();
   }, [sellerId, navigate, orderId]);
@@ -153,18 +162,19 @@ export function ChatMeetup() {
           schema: "public",
           table: "messages",
         },
-        (payload) => {
+        async (payload) => {
           const newMsg = payload.new as Message;
           // Only append if it belongs to this conversation and is marketplace
           if (
-            newMsg.chat_type !== "lostfound" &&
+            isMarketplaceMessage(newMsg) &&
             ((newMsg.sender_id === currentUserId && newMsg.receiver_id === sellerId) ||
             (newMsg.sender_id === sellerId && newMsg.receiver_id === currentUserId))
           ) {
             setMessages((prev) => prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg]);
             if (newMsg.sender_id === sellerId && newMsg.receiver_id === currentUserId) {
-              supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("id", newMsg.id).eq("receiver_id", currentUserId);
-              window.dispatchEvent(new Event("campustrade-messages-read"));
+              const { error } = await supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("id", newMsg.id).eq("receiver_id", currentUserId);
+              if (error) console.error("Failed to mark marketplace message as read:", error);
+              else window.dispatchEvent(new Event("campustrade-messages-read"));
             }
           }
         }
@@ -175,7 +185,7 @@ export function ChatMeetup() {
         (payload) => {
           const updatedMessage = payload.new as Message;
           if (
-            updatedMessage.chat_type !== "lostfound" &&
+            isMarketplaceMessage(updatedMessage) &&
             ((updatedMessage.sender_id === currentUserId && updatedMessage.receiver_id === sellerId) || (updatedMessage.sender_id === sellerId && updatedMessage.receiver_id === currentUserId))
           ) {
             setMessages((prev) => prev.map((message) => message.id === updatedMessage.id ? updatedMessage : message));
